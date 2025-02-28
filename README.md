@@ -1,8 +1,3 @@
----
-license: mit
----
-
-
 # Russian Poetry Scansion Tool
 
 The **Russian Poetry Scansion Tool** (RPST) is a Python library designed for the analysis, evaluation, and labeling of Russian-language poetry. It provides tools for the following tasks:
