@@ -6,6 +6,8 @@ The **Russian Poetry Scansion Tool** (RPST) is a Python library designed for the
 - **Technicality Scoring**: Evaluates prosodic defects and calculates a *technicality* score, ranging from 0 (complete non-compliance with poetic constraints) to 1 (perfect compliance with a poetic meter).
 - **Rhyme Detection**: Identifies rhymes, including slant (fuzzy) rhymes.
 
+Please refer to our paper for more details: [Automated Evaluation of Meter and Rhyme in Russian Generative and Human-Authored Poetry](https://arxiv.org/abs/2502.20931).
+
 
 ### Usage notes
 
@@ -29,8 +31,17 @@ The `RIFMA` dataset, used for evaluation, is available at [https://github.com/Ko
 
 ## Citation
 
-*Citation details will be added soon.*
+If you use this library in your research or projects, please cite it as follows:
 
+@misc{koziev2025automatedevaluationmeterrhyme,
+      title={Automated Evaluation of Meter and Rhyme in Russian Generative and Human-Authored Poetry},
+      author={Ilya Koziev},
+      year={2025},
+      eprint={2502.20931},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL},
+      url={https://arxiv.org/abs/2502.20931},
+}
 
 
 ### Contacts
