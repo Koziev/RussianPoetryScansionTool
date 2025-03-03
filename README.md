@@ -33,6 +33,7 @@ The `RIFMA` dataset, used for evaluation, is available at [https://github.com/Ko
 
 If you use this library in your research or projects, please cite it as follows:
 
+```
 @misc{koziev2025automatedevaluationmeterrhyme,
       title={Automated Evaluation of Meter and Rhyme in Russian Generative and Human-Authored Poetry},
       author={Ilya Koziev},
@@ -42,7 +43,7 @@ If you use this library in your research or projects, please cite it as follows:
       primaryClass={cs.CL},
       url={https://arxiv.org/abs/2502.20931},
 }
-
+```
 
 ### Contacts
 
