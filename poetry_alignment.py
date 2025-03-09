@@ -1394,7 +1394,7 @@ class PoetryAlignment(object):
         self.score = score
 
         self.metre_mappings = metre_mappings
-        if meter == 'дольник':
+        if meter == 'dolnik':
             self.meter = meter
         elif metre_mappings:
             self.meter = metre_mappings[0].get_canonic_meter()
@@ -1413,6 +1413,9 @@ class PoetryAlignment(object):
 
     @staticmethod
     def build_n4(alignments4, total_score):
+        if len(alignments4) == 1:
+            return alignments4[0]
+
         poetry_lines = []
         rhyme_graph = []
 
@@ -2923,7 +2926,7 @@ class PoetryStressAligner(object):
                 total_score = rhyme_score * mul([pline[0].get_score() for pline in new_stress_lines])
                 if total_score > best_score:
                     best_score = total_score
-                    best_metre = 'дольник'
+                    best_metre = 'dolnik'
                     best_rhyme_scheme = rhyme_scheme
                     best_variant = new_stress_lines
                     best_rhyme_graph = rhyme_graph
@@ -3125,10 +3128,18 @@ class PoetryStressAligner(object):
             #         best_metre_signature = metre_signature
             #         break
 
+            def supply_line_meter(iline):
+                if best_metre == 'dolnik':
+                    return best_metre_signature[iline % len(best_metre_signature)]
+                else:
+                    return best_metre_signature
+
             for ipline, pline in enumerate(plines[len(plines_first):], start=len(plines_first)):
                 best_scores = dict()
+
                 prefix = 0
-                cursor = MetreMappingCursor(best_metre_signature, prefix=prefix)
+                cursor = MetreMappingCursor(supply_line_meter(ipline), prefix=prefix)
+
                 for metre_mapping in cursor.map(stressed_words_groups[ipline], self):
                     stressed_words = [m.word for m in metre_mapping.word_mappings]
                     new_stress_line = LineStressVariant(pline, stressed_words, self)
