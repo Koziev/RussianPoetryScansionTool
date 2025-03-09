@@ -161,6 +161,10 @@ class MetreMappingResult(object):
 
         return
 
+    def count_stress_marks(self) -> int:
+        n = sum(word_mapping.count_stress_marks() for word_mapping in self.word_mappings)
+        return n
+
     def get_stressed_line(self) -> str:
         s = ' '.join(word_mapping.render_accentuation() for word_mapping in self.word_mappings)
         s = normalize_whitespaces(s)
@@ -222,6 +226,9 @@ class WordMappingResult(object):
     def get_total_score(self):
         return self.total_score
 
+    def count_stress_marks(self) -> int:
+        return self.syllabic_mapping.count('TP')
+
     def get_stress_signature_str(self) -> str:
         rendering = []
 
@@ -242,7 +249,6 @@ class WordMappingResult(object):
                 syllable_index += 1
 
         return ''.join(map(str, rendering))
-
 
     def render_accentuation(self) -> str:
         rendering = []
@@ -1460,7 +1466,10 @@ class PoetryAlignment(object):
                 if poetry_line.is_empty():
                     lines.append('')
                 else:
-                    lines.append(self.metre_mappings[imetre].get_stressed_line())
+                    if self.metre_mappings[imetre].count_stress_marks() == 0:
+                        lines.append(poetry_line.get_stressed_line(show_secondary_accentuation))
+                    else:
+                        lines.append(self.metre_mappings[imetre].get_stressed_line())
                     imetre += 1
 
             return '\n'.join(lines)
@@ -2950,7 +2959,6 @@ class PoetryStressAligner(object):
                                    rhyme_scheme=best_rhyme_scheme,
                                    rhyme_graph=best_rhyme_graph,
                                    metre_mappings=metre_mappings)
-
 
     def recalc_line_tscores(self, plinev, rhyme_graph):
         line_tscores = [pline[0].get_score() for pline in plinev]
