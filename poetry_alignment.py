@@ -2477,6 +2477,16 @@ class PoetryStressAligner(object):
             dolnik_patterns.append([[0,1,0,0,1,0,1,0],
                                     [0,1,0,0,1,0,1]])
 
+            # Ангелы с нами. С нами.
+            # Они и хранят, и лечат,
+            # Бывает, не спят ночами.
+            # Держи мою руку крепче.
+            dolnik_patterns.append([[1,0,0,1,0,1,0,0],
+                                    [0,1,0,0,1,0,1,0],
+                                    [0,1,0,0,1,0,1,0],
+                                    [0,1,0,0,1,0,1,0]])
+
+
         if max_num_syllables == 8:
             dolnik_patterns.append([[1, 0, 0, 1, 1, 0, 0, 1]])
 
@@ -3065,7 +3075,7 @@ class PoetryStressAligner(object):
 
             for dolnik_pattern in dolnik_patterns:
                 new_stress_lines = []
-                for ipline, pline in enumerate(plines):
+                for ipline, pline in enumerate(plines_first):  # plines
                     cursor = MetreMappingCursor(dolnik_pattern[ipline % len(dolnik_pattern)], prefix=0)
 
                     new_stress_line = None
