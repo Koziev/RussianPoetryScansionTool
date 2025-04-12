@@ -34,7 +34,14 @@ score=0.5403600876626367 meter=ямб scheme=None
 Возненави́дя, не казни́те всё́ ж.
 ```
 
-The primary stress in a word is marked in the output using the `Combining Acute Accent` symbol with the code U+0301. Secondary stresses, if detected and allowed to be output, are marked using the `Combining Grave Accent` symbol with the code U+0300.
+The primary stress in a word is marked in the output using the `Combining Acute Accent` symbol with the code U+0301. Secondary stresses, if detected and allowed to be output, are marked using the `Combining Grave Accent` symbol with the code U+0300:
+
+```
+Октя́брь багря́ным пла́менем пыла́ет,
+Влюблё́нный в о́сень, угоди́ть ей ра́д,
+Берё́зово - клено́вый лѝстопа́д
+Ей по́д ноги смущё́нно расстила́ет,
+```
 
 ## Markup Speed
 
