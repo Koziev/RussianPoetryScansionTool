@@ -55,6 +55,14 @@ The `ArsPoetica` dataset, containing approximately 8.5k poems pre-processed by `
 
 Both datasets are openly available for research purposes.
 
+### Development History
+
+This library originated as part of the [verslibre](https://github.com/Koziev/verslibre) project. The accentuation model and wrapper code were later separated and released as [accentuator](https://huggingface.co/inkoziev/accentuator) on Hugging Face. The `RPST` code eventually became available as a standalone library [here](https://github.com/RussianNLP/RussianPoetryScansionTool).
+
+Future development plans include:
+- Improving Russian poetry processing capabilities
+- Adding support for other languages (starting with English)
+
 ### License
 
 This project is licensed under the MIT License. For details, see the [LICENSE](./LICENSE) file.
