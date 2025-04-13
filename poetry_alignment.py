@@ -1935,8 +1935,6 @@ class PoetryStressAligner(object):
 
     def align1(self, lines):
         """Разметка однострочника."""
-        #if len(re.split(r'[\s,.!?\-+*]', lines[0])) > self.max_words_per_line:
-        #    raise ValueError('Line is too long @1646: "{}"'.format(lines[0]))
         tokens = tokenize(lines[0])
         ntokens = len(tokens)
         if ntokens > self.max_words_per_line:
@@ -1967,6 +1965,29 @@ class PoetryStressAligner(object):
                         best_mapping = metre_mapping
             if best_score > 0.4:
                 break
+
+        # 13.04.2025 Trying to apply dolnik patterns if not succeeded with regular meters
+        if best_score <= self.early_stopping_threshold_score and self.enable_dolnik:
+            # Определим максимальное число слогов. Это нужно для дольников.
+            num_syllables = [pline1.get_num_syllables()]
+            dolnik_patterns = self.get_dolnik_patterns(num_syllables)
+            stressed_words_groups0 = [StressVariantsSlot.build(poetry_words=pline1.pwords, aligner=self, allow_stress_shift=False)]
+
+            for dolnik_pattern in dolnik_patterns:
+                new_stress_lines = []
+                pline = pline1
+                cursor = MetreMappingCursor(dolnik_pattern[0], prefix=0)
+
+                for metre_mapping in cursor.map(stressed_words_groups0[0], self):
+                    if metre_mapping.score > best_score:
+                        stressed_words = [m.word for m in metre_mapping.word_mappings]
+                        new_stress_line = LineStressVariant(pline, stressed_words, self)
+                        new_stress_lines.append((best_mapping, new_stress_line))
+
+                        best_score = metre_mapping.score
+                        best_metre_name = 'dolnik'
+                        best_mapping = metre_mapping
+
 
         # Возвращаем найденный лучший вариант разметки и его оценку
 
@@ -2192,6 +2213,20 @@ class PoetryStressAligner(object):
                 # Посыла́ет в два счё́та.
                 # И они́ все иду́т, как бара́ны.
                 rhyme_scheme = 'AABBA'
+            elif rhyme_graph_str == '1 1 0 1 0':
+                # Мужчина тот червонной масти -
+                # В его мое сердечко власти
+                # Поет об ураганной страсти,
+                # О том, что в мире этом нет
+                # Любви одной на много лет.
+                rhyme_scheme = 'AAABB'
+            elif rhyme_graph_str == '3 1 2 0 0':
+                # Вы слуги любви, но какие неверные слуги.
+                # Волнующи речи. Сладки дорогие духи.
+                # Вы пылки и страстны. Когда ж отпоют петухи,
+                # Вы вновь возвратитесь к постели любимой подруги,
+                # Сцеловывать с губ ее пламенных те же грехи.
+                rhyme_scheme = 'ABBAB'
             elif rhyme_graph_str == '0 1 2 0 0':
                 # Цепями нужд обременённый,
                 # Без друга, в горе и слезах
@@ -2321,7 +2356,15 @@ class PoetryStressAligner(object):
                 # На полюсах замерзают года в две исполинские льдины.
                 # Холод глубин порождает разрыв - айсберг красуется сгустком тумана.
                 # Солнцем волшебные ткутся ковры - славный презент экзотическим странам.
-                rhyme_scheme = 'ABCDEF'
+                rhyme_scheme = 'AABBAA'
+            elif rhyme_graph_str == '1 1 1 0 1 0':
+                # Полтинник, это много или мало?
+                # Прожить б ещё полтинник не мешало.
+                # Ещё разок хочу начать сначала,
+                # Но жизнь идёт, и остаётся мало...
+                # Такая уж судьба у человека,
+                # Ведь мало кто живёт длиннее века.
+                rhyme_scheme = 'AAAABB'
             elif rhyme_graph_str == '2 2 2 2 0 0':
                 # Что мечты мои волнует
                 # На привычном ложе сна?
@@ -2482,6 +2525,13 @@ class PoetryStressAligner(object):
                                     [0,0,1,0,0,1,0,1,0]
                                     ])
 
+        if max_num_syllables == 6:
+            # Солнышко с потолка
+            # Кинет лучи на стол...
+            # Чудо на три рожка -
+            # Триста уже не сто.
+            dolnik_patterns.append([[1,0,0,1,0,1]])
+
         if min_num_syllables == 6 and max_num_syllables == 7:
             # В городе ночь без края,
             # Что волшебства полна.
@@ -2617,6 +2667,12 @@ class PoetryStressAligner(object):
             # Все поголовно всё понимают.
             dolnik_patterns.append([[1,0,0,1,0,0,1, 0,1,0]])
 
+            # Не жаль деревянный мой карандаш.
+            # Он самый желанный. Он - твой. Он - наш!
+            # Не жаль деревянный мой карандаш.
+            # И холст белотканный. И мой пейзаж.
+            dolnik_patterns.append([[0,1,0,0,1,0,0,1, 0,1]])
+
         if min_num_syllables == 10 and max_num_syllables == 11:
             # Мимо бе́лого я́блока луны́,
             # Мимо кра́сного я́блока зака́та
@@ -2672,6 +2728,9 @@ class PoetryStressAligner(object):
             # Научи меня прощать все мои обиды.
             dolnik_patterns.append([[1,0,1,0,1,0,1,0, 0,1,0,1,0,]])
 
+        if max_num_syllables in (13, 14):
+            # Вырастет из сына свин, если сын — свинёнок
+            dolnik_patterns.append([[1,0,1,0,1,0,1, 1,0,1,0,1,0,1]])
 
         if max_num_syllables == 14:
             dolnik_patterns.append([[1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1]])
