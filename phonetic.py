@@ -1597,6 +1597,9 @@ def rhymed2(accentuator, word1, stress1, ud_tags1, unstressed_prefix1, unstresse
 
 fuzzy_ending_pairs0 = [
     #(r'\^эсна', r'\^эстна'), # интересно - честно
+    (r'\^эздна', r'\^эзн[ыу]'),  # xword1=б^эздна xword2=биспал^эзны  word1=бездна word2=бесполезны
+    (r'\^о([:C:])аха', r'\^о[:1:]уха'),  # word1=промаха xword1=пр^омаха clausula1=^омаха  word2=черёмуха xword2=чир^омуха clausula2=^омуха
+    (r'а\^аца', r'\^ядцы'),  # word1=таятся xword1=та^аца clausula1=^аца  word2=тунеядцы xword2=туни^ядцы clausula2=^ядцы
     (r'\^а([:C:])кэ', r'\^а[:1:]ках'),  # word1=стакашке xword1=стак^ашкэ clausula1=^ашкэ  word2=ромашках xword2=рам^ашках clausula2=^ашках
     (r'м\^ая', r'м\^ают'),  # word1=прямая xword1=прам^ая clausula1=^ая  word2=понимают xword2=паным^ают clausula2=^ают
     (r'ч\^асье', r'щ\^астья'),  # word1=одночасье xword1=аднач^асье clausula1=^асье  word2=счастья xword2=щ^астья clausula2=^астья
