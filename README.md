@@ -43,7 +43,50 @@ The primary stress in a word is marked in the output using the `Combining Acute 
 Ей по́д ноги смущё́нно расстила́ет,
 ```
 
-## Markup Speed
+### Algorithm Features
+
+#### Stanza Processing
+
+The algorithm processes each stanza independently. This approach:  
+1. Allows different stanzas to use distinct meter patterns  
+2. May introduce inaccuracies in:  
+  - Part-of-speech tagging (due to enjambment), resulting in homograph resolution mistakes  
+  - Rhyme scheme detection (when rhyming lines span adjacent stanzas)  
+
+#### Unstructured Text Handling
+
+For long poems (7+ lines) without stanza breaks:  
+1. The text is automatically split into 4-7 line segments  
+2. Each segment is analyzed separately  
+
+This segmentation reduces computational complexity but may:  
+- Decrease part-of-speech tagging accuracy  
+- Prevent correct rhyme detection between lines in different segments  
+
+#### Single-Line Processing
+
+The algorithm forces single lines into metrical patterns, sometimes at the cost of:  
+- Unnatural stress placement  
+- Stress dropping in certain words  
+
+**Classification Challenges:**  
+The system uses heuristics to distinguish between:  
+
+1) Monostich (intentional one-line poem)
+
+```Веде́м по жи́зни мы́ друг дру́га за́ нос```
+
+2) Rhyming proverb
+
+```Зе́ркало не винова́то, что ро́жа кривова́та.```
+
+3)  Regular prose (shouldn't be forced into meter)
+
+```Име́ть дли́нные во́лосы – э́то повсю́ду оставля́ть части́чку себя́.```
+
+In some cases, the heuristics fails that leads to misclassification. The overall result of the markup in such cases may be incorrect.
+
+### Markup Speed
 
 Performance benchmarks for the Russian Poetry Scansion Tool (measured on an Intel i7-9700K CPU @ 3.60GHz):
 
@@ -75,7 +118,7 @@ Future development plans include:
 This project is licensed under the MIT License. For details, see the [LICENSE](./LICENSE) file.
 
 
-## Citation
+### Citation
 
 If you use this library in your research or projects, please cite it as follows:
 
