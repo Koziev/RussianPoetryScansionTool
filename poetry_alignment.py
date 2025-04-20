@@ -120,6 +120,9 @@ class MetreMappingResult(object):
         self.metre_signature = metre_signature
         self.cursor = 0
 
+    def enforce_intrinsic_word_accentuation(self):
+        self.word_mappings = [WordMappingResult.build_from_word_stress_variant(word_mapping.word) for word_mapping in self.word_mappings]
+
     def count_prev_unstressed_syllables(self):
         num_unstressed_syllables = 0
         for word_mapping in self.word_mappings[::-1]:
@@ -584,7 +587,7 @@ class PoetryWord(object):
         else:
             return self.form
 
-    def get_stress_variants(self, aligner, allow_stress_shift):
+    def get_stress_variants(self, aligner, allow_stress_shift, allow_unstress12):
         variants = []
 
         nvowels = self.n_vowels  # count_vowels(self.form.lower())
@@ -638,7 +641,7 @@ class PoetryWord(object):
                 variants.append(WordStressVariant(self, self.stress_pos, 1.0))
             else:
                 variants.append(WordStressVariant(self, self.stress_pos, 0.5))
-        elif nvowels == 1 and self.upos in ('NOUN', 'NUM', 'ADJ'):
+        elif nvowels == 1 and self.upos in ('NOUN', 'NUM', 'ADJ') and allow_unstress12:
             # Односложные слова типа "год" или "два" могут стать безударными:
             # В год Петуха́ учи́тесь кукаре́кать.
             #   ^^^
@@ -646,7 +649,7 @@ class PoetryWord(object):
             #      ^^^
             variants.append(WordStressVariant(self, self.stress_pos, 1.0))
             variants.append(WordStressVariant(self, -1, 0.7))
-        elif nvowels == 1 and self.upos == 'VERB':
+        elif nvowels == 1 and self.upos == 'VERB' and allow_unstress12:
             # 21.08.2022 разрешаем становится безударными односложным глаголам.
             variants.append(WordStressVariant(self, self.stress_pos, 1.0))
             variants.append(WordStressVariant(self, -1, 0.7))
@@ -755,7 +758,7 @@ class PoetryWord(object):
                              'уже', 'этом', 'тебе']:
                     # Безударный вариант для таких двусложных прилагательных
                     variants.append(WordStressVariant(self, -1, COEFF['@77_2']))
-                elif nvowels == 2:
+                elif nvowels == 2 and allow_unstress12:
                     # двусложные наречия - разрешаем без ударения.
                     # Например, первое слово "Снова":
                     #
@@ -773,7 +776,7 @@ class PoetryWord(object):
             if uform in ['есть', 'раз', 'быть', 'будь', 'был']:  # and not self.is_rhyming_word:
                 # безударный вариант
                 variants.append(WordStressVariant(self, -1, COEFF['@143']))
-            elif nvowels in (1, 2):
+            elif nvowels in (1, 2) and allow_unstress12:
                 # 03.05.2024 безударный вариант для остальных двусложных
                 variants.append(WordStressVariant(self, -1, 0.8))
 
@@ -808,7 +811,7 @@ class PoetryWord(object):
         return variants
 
     def get_first_stress_variant(self, aligner):
-        variants = self.get_stress_variants(aligner, allow_stress_shift=False)
+        variants = self.get_stress_variants(aligner, allow_stress_shift=False, allow_unstress12=False)
         return variants[0]
         #return WordStressVariant(self, self.stress_pos, score=1.0)
 
@@ -884,7 +887,7 @@ class StressVariantsSlot(object):
         return n
 
     @staticmethod
-    def build_next(poetry_words, aligner, allow_stress_shift):
+    def build_next(poetry_words, aligner, allow_stress_shift, allow_unstress12):
         next_nodes = []
 
         pword = poetry_words[0]
@@ -927,7 +930,10 @@ class StressVariantsSlot(object):
                     next_node2.next_nodes = [next_node3]
 
                     if len(poetry_words) > 3:
-                        next_node3.next_nodes = StressVariantsSlot.build_next(poetry_words[3:], aligner, allow_stress_shift=allow_stress_shift)
+                        next_node3.next_nodes = StressVariantsSlot.build_next(poetry_words[3:],
+                                                                              aligner,
+                                                                              allow_stress_shift=allow_stress_shift,
+                                                                              allow_unstress12=allow_unstress12)
 
                     next_nodes.append(next_node)
 
@@ -959,7 +965,10 @@ class StressVariantsSlot(object):
                     next_node.next_nodes = [next_node2]
 
                     if len(poetry_words) > 2:
-                        next_node2.next_nodes = StressVariantsSlot.build_next(poetry_words[2:], aligner, allow_stress_shift=allow_stress_shift)
+                        next_node2.next_nodes = StressVariantsSlot.build_next(poetry_words[2:],
+                                                                              aligner,
+                                                                              allow_stress_shift=allow_stress_shift,
+                                                                              allow_unstress12=allow_unstress12)
 
                     next_nodes.append(next_node)
 
@@ -967,16 +976,24 @@ class StressVariantsSlot(object):
 
         # Самый типичный путь - получаем варианты ударения для слова с их весами.
         next_node = StressVariantsSlot()
-        next_node.stressed_words = pword.get_stress_variants(aligner, allow_stress_shift=allow_stress_shift)
+        next_node.stressed_words = pword.get_stress_variants(aligner,
+                                                             allow_stress_shift=allow_stress_shift,
+                                                             allow_unstress12=allow_unstress12)
         if len(poetry_words) > 1:
-            next_node.next_nodes = StressVariantsSlot.build_next(poetry_words[1:], aligner, allow_stress_shift)
+            next_node.next_nodes = StressVariantsSlot.build_next(poetry_words[1:],
+                                                                 aligner,
+                                                                 allow_stress_shift=allow_stress_shift,
+                                                                 allow_unstress12=allow_unstress12)
         next_nodes.append(next_node)
         return next_nodes
 
     @staticmethod
-    def build(poetry_words, aligner, allow_stress_shift):
+    def build(poetry_words, aligner, allow_stress_shift, allow_unstress12):
         start = StressVariantsSlot()
-        start.next_nodes = StressVariantsSlot.build_next(poetry_words, aligner, allow_stress_shift)
+        start.next_nodes = StressVariantsSlot.build_next(poetry_words,
+                                                         aligner,
+                                                         allow_stress_shift=allow_stress_shift,
+                                                         allow_unstress12=allow_unstress12)
         return start
 
 
@@ -1857,7 +1874,7 @@ class PoetryStressAligner(object):
         for allow_stress_shift in [False, True]:
             # Заранее сгенерируем для каждого слова варианты спеллчека и ударения...
             # stressed_words_groups = [pword.get_stress_variants(self, allow_stress_shift=True) for pword in pline1.pwords]
-            stressed_words_chain = StressVariantsSlot.build(poetry_words=pline1.pwords, aligner=self, allow_stress_shift=allow_stress_shift)
+            stressed_words_chain = StressVariantsSlot.build(poetry_words=pline1.pwords, aligner=self, allow_stress_shift=allow_stress_shift, allow_unstress12=True)
 
             for metre_name, metre_signature in meters:
                 cursor = MetreMappingCursor(metre_signature, prefix=0)
@@ -1874,7 +1891,7 @@ class PoetryStressAligner(object):
             # Определим максимальное число слогов. Это нужно для дольников.
             num_syllables = [pline1.get_num_syllables()]
             dolnik_patterns = self.get_dolnik_patterns(num_syllables)
-            stressed_words_groups0 = [StressVariantsSlot.build(poetry_words=pline1.pwords, aligner=self, allow_stress_shift=False)]
+            stressed_words_groups0 = [StressVariantsSlot.build(poetry_words=pline1.pwords, aligner=self, allow_stress_shift=False, allow_unstress12=True)]
 
             for dolnik_pattern in dolnik_patterns:
                 new_stress_lines = []
@@ -2030,7 +2047,7 @@ class PoetryStressAligner(object):
                 break
 
             # Заранее сгенерируем для каждого слова варианты спеллчека и ударения...
-            stressed_words_groups = [StressVariantsSlot.build(poetry_words=pline.pwords, aligner=self, allow_stress_shift=allow_stress_shift) for pline in plines]
+            stressed_words_groups = [StressVariantsSlot.build(poetry_words=pline.pwords, aligner=self, allow_stress_shift=allow_stress_shift, allow_unstress12=True) for pline in plines]
 
             # Для каждой строки перебираем варианты разметки и оставляем по 2 варианта в каждом метре.
             for metre_name, metre_signature in meters:
@@ -2112,7 +2129,7 @@ class PoetryStressAligner(object):
             num_syllables = [pline.get_num_syllables() for pline in plines]
             dolnik_patterns = self.get_dolnik_patterns(num_syllables)
             stressed_words_groups0 = [
-                StressVariantsSlot.build(poetry_words=pline.pwords, aligner=self, allow_stress_shift=False) for
+                StressVariantsSlot.build(poetry_words=pline.pwords, aligner=self, allow_stress_shift=False, allow_unstress12=True) for
                 pline in plines]
 
             for dolnik_pattern in dolnik_patterns:
@@ -2849,7 +2866,7 @@ class PoetryStressAligner(object):
         return dolnik_patterns
 
     def align_artishok(self, lines, plines):
-        stressed_words_groups = [StressVariantsSlot.build(poetry_words=pline.pwords, aligner=self, allow_stress_shift=True) for pline in plines]
+        stressed_words_groups = [StressVariantsSlot.build(poetry_words=pline.pwords, aligner=self, allow_stress_shift=True, allow_unstress12=True) for pline in plines]
 
         # Первые три строки - амфибрахий, последняя - хорей.
         line_meters = [('амфибрахий', (0, 1, 0))]*3 + [('хорей', (1, 0))]
@@ -2954,7 +2971,7 @@ class PoetryStressAligner(object):
                 break
 
             # Заранее сгенерируем для каждого слова варианты спеллчека и ударения...
-            stressed_words_groups = [StressVariantsSlot.build(poetry_words=pline.pwords, aligner=self, allow_stress_shift=allow_stress_shift) for pline in plines]
+            stressed_words_groups = [StressVariantsSlot.build(poetry_words=pline.pwords, aligner=self, allow_stress_shift=allow_stress_shift, allow_unstress12=True) for pline in plines]
 
             check_meters = meters
             if n_sylla == (9, 8, 9, 2):
@@ -3073,7 +3090,7 @@ class PoetryStressAligner(object):
             num_syllables = [pline.get_num_syllables() for pline in plines]
             dolnik_patterns = self.get_dolnik_patterns(num_syllables)
             stressed_words_groups0 = [
-                StressVariantsSlot.build(poetry_words=pline.pwords, aligner=self, allow_stress_shift=False) for
+                StressVariantsSlot.build(poetry_words=pline.pwords, aligner=self, allow_stress_shift=False, allow_unstress12=True) for
                 pline in plines]
 
             for dolnik_pattern in dolnik_patterns:
@@ -3113,6 +3130,18 @@ class PoetryStressAligner(object):
             # На душе все грустней и грустней.
 
 
+        # 20-04-2025
+        if best_score <= 0.1:
+            score, stressed_lines, line_mappings, meter, rhyme_scheme, rhyme_graph = self.align_weak0(lines)
+            if rhyme_scheme.count('-') < best_rhyme_scheme.count('-'):
+                # Accept this alignment.
+                return PoetryAlignment(stressed_lines,
+                                       score,
+                                       meter,
+                                       rhyme_scheme=rhyme_scheme,
+                                       rhyme_graph=rhyme_graph,
+                                       metre_mappings=line_mappings)
+
         if best_variant is None:
             # В этом случае вернем результат с нулевым скором и особым текстом, чтобы
             # можно было вывести в лог строки с каким-то дефолтными
@@ -3125,6 +3154,164 @@ class PoetryStressAligner(object):
                                    rhyme_scheme=best_rhyme_scheme,
                                    rhyme_graph=best_rhyme_graph,
                                    metre_mappings=metre_mappings)
+
+    def align_weak0(self, lines):
+        for line in lines:
+            tokens = tokenize(line)
+            ntokens = len(tokens)
+            if ntokens > self.max_words_per_line:
+                raise ValueError('Line is too long @3146: max_words_per_line={} tokens={} line="{}"'.format(self.max_words_per_line, '|'.join(tokens), line))
+
+        plines = [PoetryLine.build(line, self.udpipe, self.accentuator) for line in lines]
+
+        # 08.11.2022 добавлена защита от взрыва числа переборов для очень плохих генераций.
+        for pline in plines:
+            if sum((pword.n_vowels>=1) for pword in pline.pwords) >= self.max_words_per_line:
+                raise ValueError('Line is too long @3153: "{}"'.format(pline))
+
+        n_sylla = tuple(l.get_num_syllables() for l in plines)
+
+        best_score = 0.0
+        best_metre = None
+        best_rhyme_scheme = None
+        best_variant = None
+        best_rhyme_graph = None
+        rhyming_detection_cache = dict()
+
+        # Проверяем основные метры.
+        for allow_stress_shift in [True]:  # [False, True]:
+            if best_score > self.early_stopping_threshold_score:
+                break
+
+            # Заранее сгенерируем для каждого слова варианты спеллчека и ударения...
+            stressed_words_groups = [StressVariantsSlot.build(poetry_words=pline.pwords, aligner=self, allow_stress_shift=allow_stress_shift, allow_unstress12=False) for pline in plines]
+
+            check_meters = meters
+            if n_sylla == (9, 8, 9, 2):
+                # Порошки - только ямб
+                check_meters = [('ямб', (0, 1))]
+
+            # Для каждой строки перебираем варианты разметки и оставляем по ~2 варианта в каждом метре.
+            for metre_name, metre_signature in check_meters:
+                best_scores = dict()
+
+                # В каждой строке перебираем варианты расстановки ударений.
+                for ipline, pline in enumerate(plines):
+                    best_scores[ipline] = dict()
+
+                    for prefix in self.get_prefixes_for_meter(metre_signature):
+                        cursor = MetreMappingCursor(metre_signature, prefix=prefix)
+                        for metre_mapping in cursor.map(stressed_words_groups[ipline], self):
+                            metre_mapping.enforce_intrinsic_word_accentuation()
+                            stressed_words = [m.word for m in metre_mapping.word_mappings]
+                            new_stress_line = LineStressVariant(pline, stressed_words, self)
+
+                            if new_stress_line.get_rhyming_tail().is_ok():
+                                tail_str = new_stress_line.get_rhyming_tail().__repr__()
+                                score = metre_mapping.get_score()
+                                if tail_str not in best_scores[ipline]:
+                                    prev_score = -1e3
+                                else:
+                                    prev_score = best_scores[ipline][tail_str][0].get_score()
+                                if score > prev_score:
+                                    best_scores[ipline][tail_str] = (metre_mapping, new_stress_line)
+
+                # Теперь для каждой исходной строки имеем несколько вариантов расстановки ударений.
+                # Перебираем сочетания этих вариантов, проверяем рифмовку и оставляем лучший вариант для данной метра.
+                stressed_lines2 = [list() for _ in range(len(best_scores))]
+                for iline, items2 in best_scores.items():
+                    stressed_lines2[iline].extend(items2.values())
+
+                vvx = list(itertools.product(*stressed_lines2))
+                for ivar, plinev in enumerate(vvx):
+                    # plinev это набор из двух экземпляров кортежей (MetreMappingResult, LineStressVariant).
+
+                    # Различные дефекты ритма
+                    metre_defects_score = 1.0
+                    # 11.12.2022 сдвиг одной строки на 1 позицию
+                    nprefixa = collections.Counter(pline[0].prefix for pline in plinev)
+                    if nprefixa.get(0) == 1 or nprefixa.get(1) == 1:
+                        metre_defects_score *= 0.1
+
+                    # Есть жанры, где в четырех строках должно быть 3 варианта слоговой длины.
+                    # Примеры: порошки (9-8-9-2) и артишоки (11-9-11-2).
+                    # Для них не штрафуем за 3 варианта длины!
+                    n_sylla = tuple(l[1].poetry_line.get_num_syllables() for l in plinev)
+                    if n_sylla not in [(11, 9, 11, 2), (9, 8, 9, 2)]:
+                        nsyllaba = collections.Counter(len(pline[1].stress_signature) for pline in plinev)
+                        if len(nsyllaba) > 2:
+                            # Есть более 2 длин строк в слогах
+                            metre_defects_score *= 0.1
+                        else:
+                            for nsyllab, num in nsyllaba.most_common():
+                                if num == 3:
+                                    # 03.05.2024 особый случай с рубаи. третья строка обычно отличается по числу слогов.
+                                    if len(n_sylla)==4 and n_sylla[0] in (10, 11, 12, 13) and n_sylla[0]==n_sylla[1] and n_sylla[0]==n_sylla[3] and n_sylla[2] == n_sylla[0]+1:
+                                        pass
+                                    else:
+                                        # В одной строке число слогов отличается от 3х других строк:
+                                        metre_defects_score *= 0.1
+
+                    # Определяем рифмуемость
+                    last_pwords = [pline[1].get_rhyming_tail() for pline in plinev]
+
+                    rhyme_scheme, rhyme_score, rhyme_graph = self.detect_rhyming(last_pwords, rhyming_detection_cache)
+                    line_tscores = self.recalc_line_tscores(plinev, rhyme_graph)
+                    total_score = metre_defects_score * rhyme_score * mul(line_tscores)
+
+                    if total_score > best_score:
+                        best_score = total_score
+                        best_metre = metre_name
+                        best_rhyme_scheme = rhyme_scheme
+                        best_variant = plinev
+                        best_rhyme_graph = rhyme_graph
+
+                        if best_score > self.early_stopping_threshold_score:
+                            break
+
+        # Если не получилось найти хороший маппинг с основными метрами, то пробуем дольники
+        if best_score <= self.early_stopping_threshold_score and self.enable_dolnik:
+            # Определим максимальное число слогов. Это нужно для дольников.
+            num_syllables = [pline.get_num_syllables() for pline in plines]
+            dolnik_patterns = self.get_dolnik_patterns(num_syllables)
+            stressed_words_groups0 = [
+                StressVariantsSlot.build(poetry_words=pline.pwords, aligner=self, allow_stress_shift=False, allow_unstress12=True) for
+                pline in plines]
+
+            for dolnik_pattern in dolnik_patterns:
+                new_stress_lines = []
+                for ipline, pline in enumerate(plines):
+                    cursor = MetreMappingCursor(dolnik_pattern[ipline % len(dolnik_pattern)], prefix=0)
+
+                    new_stress_line = None
+                    best_mapping = None
+                    max_score = 0.0
+
+                    for metre_mapping in cursor.map(stressed_words_groups0[ipline], self):
+                        if metre_mapping.score > max_score:
+                            max_score = metre_mapping.score
+                            stressed_words = [m.word for m in metre_mapping.word_mappings]
+                            new_stress_line = LineStressVariant(pline, stressed_words, self)
+                            best_mapping = metre_mapping
+
+                    new_stress_lines.append((best_mapping, new_stress_line))
+
+                # Определяем рифмуемость
+                last_pwords = [line[1].get_rhyming_tail() for line in new_stress_lines]
+                rhyme_scheme, rhyme_score, rhyme_graph = self.detect_rhyming(last_pwords, rhyming_detection_cache)
+
+                total_score = rhyme_score * mul([pline[0].get_score() for pline in new_stress_lines])
+                if total_score > best_score:
+                    best_score = total_score
+                    best_metre = 'dolnik'
+                    best_rhyme_scheme = rhyme_scheme
+                    best_variant = new_stress_lines
+                    best_rhyme_graph = rhyme_graph
+
+        # Возвращаем найденный вариант разметки и его оценку
+        best_lines = [v[1] for v in best_variant]
+        metre_mappings = [v[0] for v in best_variant]
+        return best_score, best_lines, metre_mappings, best_metre, best_rhyme_scheme, best_rhyme_graph
 
     def recalc_line_tscores(self, plinev, rhyme_graph):
         line_tscores = [pline[0].get_score() for pline in plinev]
@@ -3164,7 +3351,7 @@ class PoetryStressAligner(object):
         rhyming_detection_cache = dict()
 
         # Заранее сгенерируем для каждого слова варианты спеллчека и ударения...
-        stressed_words_groups = [StressVariantsSlot.build(poetry_words=pline.pwords, aligner=self, allow_stress_shift=allow_stress_shift) for pline in plines]
+        stressed_words_groups = [StressVariantsSlot.build(poetry_words=pline.pwords, aligner=self, allow_stress_shift=allow_stress_shift, allow_unstress12=True) for pline in plines]
 
         # 30.11.2023 еще одна защита от взрывного роста числа вариантов
         for stressed_words_group in stressed_words_groups:
@@ -3247,7 +3434,7 @@ class PoetryStressAligner(object):
             num_syllables = [pline.get_num_syllables() for pline in plines_first]
             dolnik_patterns = self.get_dolnik_patterns(num_syllables)
             stressed_words_groups0 = [
-                StressVariantsSlot.build(poetry_words=pline.pwords, aligner=self, allow_stress_shift=False) for
+                StressVariantsSlot.build(poetry_words=pline.pwords, aligner=self, allow_stress_shift=False, allow_unstress12=True) for
                 pline in plines]
 
             for dolnik_pattern in dolnik_patterns:
