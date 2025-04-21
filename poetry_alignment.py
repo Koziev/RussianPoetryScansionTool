@@ -1807,7 +1807,34 @@ class PoetryStressAligner(object):
 
                     block = []
 
-        return PoetryAlignment.build_n4(block_alignments, total_score)
+        result = PoetryAlignment.build_n4(block_alignments, total_score)
+
+        if [len(block.poetry_lines) for block in block_alignments] == [4, 4, 3, 3]:
+            # Возможно, это сонет в формате 4+4+3+3
+            # Проверим кросс-рифмовку и скорректируем общую схему рифмовки.
+            if [block.rhyme_scheme for block in block_alignments] == ['ABBA', 'ABBA', 'A-A', 'A-A']:
+                rhyme_1_4 = block_alignments[0].poetry_lines[3].get_rhyming_tail()
+                rhyme_2_1 = block_alignments[1].poetry_lines[0].get_rhyming_tail()
+                r_14_21 = self.check_rhyming(rhyme_1_4, rhyme_2_1)
+
+                rhyme_1_3 = block_alignments[0].poetry_lines[2].get_rhyming_tail()
+                rhyme_2_2 = block_alignments[1].poetry_lines[1].get_rhyming_tail()
+                r_13_22 = self.check_rhyming(rhyme_1_3, rhyme_2_2)
+
+                if r_14_21 and r_13_22:
+                    rhyme_3_3 = block_alignments[2].poetry_lines[2].get_rhyming_tail()
+                    rhyme_4_1 = block_alignments[3].poetry_lines[0].get_rhyming_tail()
+                    r_33_41 = self.check_rhyming(rhyme_3_3, rhyme_4_1)
+                    if r_33_41:
+                        rhyme_3_2 = block_alignments[2].poetry_lines[1].get_rhyming_tail()
+                        rhyme_4_2 = block_alignments[3].poetry_lines[1].get_rhyming_tail()
+                        r_32_42 = self.check_rhyming(rhyme_3_2, rhyme_4_2)
+                        if r_32_42:
+                            new_rhyme_scheme = 'ABBA ABBA CDC CDC'
+                            result.rhyme_scheme = new_rhyme_scheme
+                            # TODO обновить result.rhyme_graf
+
+        return result
 
     def check_rhyming(self, rhyming_tail1, rhyming_tail2) -> bool:
         if not rhyming_tail1.is_ok() or not rhyming_tail2.is_ok():
@@ -1852,6 +1879,64 @@ class PoetryStressAligner(object):
             #plines = [PoetryLine.build(line, self.udpipe, self.accentuator) for line in lines]
             #return PoetryAlignment.build_no_rhyming_result([pline.get_stress_variants(self)[0] for pline in plines])
             return None
+
+    def detect_stress_lacunas(self, line_mappings) -> bool:
+        for line_mapping in line_mappings:
+            if self.detect_stress_lacunas1(line_mapping):
+                return True
+        return False
+
+    def detect_stress_lacunas1(self, line_mapping) -> bool:
+        nwords = len(line_mapping.word_mappings)
+        for iword, word_mapping in enumerate(line_mapping.word_mappings):
+            if (len(word_mapping.syllabic_mapping) > 1 and word_mapping.word.poetry_word.upos in ('NOUN', 'ADJ', 'ADV', 'VERB')) \
+                 or (len(word_mapping.syllabic_mapping) == 1 and word_mapping.word.poetry_word.upos in ('NOUN', 'ADJ', 'VERB') and line_mapping.get_score() < 0.40):
+                if 'TP' not in word_mapping.syllabic_mapping:  # ударений нет
+                    # Проверим, что слово не участвует в словосочетании с переносом ударения на клитику, например "по лесу".
+                    this_word = word_mapping.word.form.lower()
+                    prev_word = None
+                    next_word = None
+
+                    prosodic_collocation_found = False
+
+                    if iword > 0:
+                        # Проверим сочетание с предыдущим или последующим словом для словосочетаний типа "по лесу"
+                        prev_word = line_mapping.word_mappings[iword - 1].word.form.lower()
+
+                        key = (prev_word, this_word)
+                        if key in self.collocations:
+                            prosodic_collocation_found = True
+
+                    if iword < nwords - 1:
+                        # Проверим сочетания в контексте из 3х слов для словосочетаний типа "бок о бок"
+                        next_word = line_mapping.word_mappings[iword + 1].word.form.lower()
+
+                        key = (this_word, next_word)
+                        if key in self.collocations:
+                            prosodic_collocation_found = True
+
+                    if prev_word and next_word:
+                        # Проверим сочетания в контексте из 3х слов для словосочетаний типа "бок о бок"
+                        key = (prev_word, this_word, next_word)
+                        if key in self.collocations:
+                            prosodic_collocation_found = True
+
+                    if iword > 1:
+                        prev2_word = line_mapping.word_mappings[iword - 2].word.form.lower()
+                        key = (prev2_word, prev_word, this_word)
+                        if key in self.collocations:
+                            prosodic_collocation_found = True
+
+                    if iword < nwords - 2:
+                        next2_word = line_mapping.word_mappings[iword + 2].word.form.lower()
+                        key = (this_word, next_word, next2_word)
+                        if key in self.collocations:
+                            prosodic_collocation_found = True
+
+                    if not prosodic_collocation_found:
+                        # Unstressed word defect detected.
+                        return True
+        return False
 
     def align1(self, lines):
         """Разметка однострочника."""
@@ -1941,57 +2026,62 @@ class PoetryStressAligner(object):
                                 break
 
             if not do_fallback_proza_accentuation:
-                # 17.04.2024 Для поговорки "Не страшна врагов туча, если армия могуча." при подгонке метра получаем разметку с безударным существительным "врагов".
+                # 17.04.2024 Для поговорки "Не страшна врагов туча, если армия могуча." при подгонке метра получаем
+                # разметку с безударным существительным "врагов".
                 # В таких случаях разумно откатиться на прозаическую разметку.
-                nwords = len(best_mapping.word_mappings)
-                for iword, word_mapping in enumerate(best_mapping.word_mappings):
-                    if (len(word_mapping.syllabic_mapping) > 1 and word_mapping.word.poetry_word.upos in ('NOUN', 'ADJ', 'ADV', 'VERB'))\
-                            or (len(word_mapping.syllabic_mapping)==1 and word_mapping.word.poetry_word.upos in ('NOUN', 'ADJ', 'VERB') and best_score < 0.40):
-                        if 'TP' not in word_mapping.syllabic_mapping:  # ударений нет
-                            # Проверим, что слово не участвует в словосочетании с переносом ударения на клитику, например "по лесу".
-                            this_word = word_mapping.word.form.lower()
-                            prev_word = None
-                            next_word = None
 
-                            prosodic_collocation_found = False
+                if self.detect_stress_lacunas1(best_mapping):
+                    do_fallback_proza_accentuation = True
 
-                            if iword > 0:
-                                # Проверим сочетание с предыдущим или последующим словом для словосочетаний типа "по лесу"
-                                prev_word = best_mapping.word_mappings[iword-1].word.form.lower()
-
-                                key = (prev_word, this_word)
-                                if key in self.collocations:
-                                    prosodic_collocation_found = True
-
-                            if iword < nwords-1:
-                                # Проверим сочетания в контексте из 3х слов для словосочетаний типа "бок о бок"
-                                next_word = best_mapping.word_mappings[iword+1].word.form.lower()
-
-                                key = (this_word, next_word)
-                                if key in self.collocations:
-                                    prosodic_collocation_found = True
-
-                            if prev_word and next_word:
-                                # Проверим сочетания в контексте из 3х слов для словосочетаний типа "бок о бок"
-                                key = (prev_word, this_word, next_word)
-                                if key in self.collocations:
-                                    prosodic_collocation_found = True
-
-                            if iword > 1:
-                                prev2_word = best_mapping.word_mappings[iword-2].word.form.lower()
-                                key = (prev2_word, prev_word, this_word)
-                                if key in self.collocations:
-                                    prosodic_collocation_found = True
-
-                            if iword < nwords-2:
-                                next2_word = best_mapping.word_mappings[iword+2].word.form.lower()
-                                key = (this_word, next_word, next2_word)
-                                if key in self.collocations:
-                                    prosodic_collocation_found = True
-
-                            if not prosodic_collocation_found:
-                                do_fallback_proza_accentuation = True
-                                break
+                # nwords = len(best_mapping.word_mappings)
+                # for iword, word_mapping in enumerate(best_mapping.word_mappings):
+                #     if (len(word_mapping.syllabic_mapping) > 1 and word_mapping.word.poetry_word.upos in ('NOUN', 'ADJ', 'ADV', 'VERB'))\
+                #             or (len(word_mapping.syllabic_mapping)==1 and word_mapping.word.poetry_word.upos in ('NOUN', 'ADJ', 'VERB') and best_score < 0.40):
+                #         if 'TP' not in word_mapping.syllabic_mapping:  # ударений нет
+                #             # Проверим, что слово не участвует в словосочетании с переносом ударения на клитику, например "по лесу".
+                #             this_word = word_mapping.word.form.lower()
+                #             prev_word = None
+                #             next_word = None
+                #
+                #             prosodic_collocation_found = False
+                #
+                #             if iword > 0:
+                #                 # Проверим сочетание с предыдущим или последующим словом для словосочетаний типа "по лесу"
+                #                 prev_word = best_mapping.word_mappings[iword-1].word.form.lower()
+                #
+                #                 key = (prev_word, this_word)
+                #                 if key in self.collocations:
+                #                     prosodic_collocation_found = True
+                #
+                #             if iword < nwords-1:
+                #                 # Проверим сочетания в контексте из 3х слов для словосочетаний типа "бок о бок"
+                #                 next_word = best_mapping.word_mappings[iword+1].word.form.lower()
+                #
+                #                 key = (this_word, next_word)
+                #                 if key in self.collocations:
+                #                     prosodic_collocation_found = True
+                #
+                #             if prev_word and next_word:
+                #                 # Проверим сочетания в контексте из 3х слов для словосочетаний типа "бок о бок"
+                #                 key = (prev_word, this_word, next_word)
+                #                 if key in self.collocations:
+                #                     prosodic_collocation_found = True
+                #
+                #             if iword > 1:
+                #                 prev2_word = best_mapping.word_mappings[iword-2].word.form.lower()
+                #                 key = (prev2_word, prev_word, this_word)
+                #                 if key in self.collocations:
+                #                     prosodic_collocation_found = True
+                #
+                #             if iword < nwords-2:
+                #                 next2_word = best_mapping.word_mappings[iword+2].word.form.lower()
+                #                 key = (this_word, next_word, next2_word)
+                #                 if key in self.collocations:
+                #                     prosodic_collocation_found = True
+                #
+                #             if not prosodic_collocation_found:
+                #                 do_fallback_proza_accentuation = True
+                #                 break
 
             if not do_fallback_proza_accentuation:
                 new_stress_line = pline1.get_first_stress_variants(self)
@@ -2204,7 +2294,9 @@ class PoetryStressAligner(object):
         rhyme_graph.append(None)  # последняя строка
 
         nlines = len(last_pwords)
-        
+
+        # TODO: переделать на формирование строки rhyme_scheme так, как это сделано в EnglishPoetryScansionTool
+
         rhyme_scheme = '-' * len(last_pwords)
 
         rhyme_graph_str = ' '.join(map(str, [(0 if e is None else e) for e in rhyme_graph]))
@@ -2391,6 +2483,13 @@ class PoetryStressAligner(object):
                 # И втоптан в землю прах друзей моих.
                 # Вы — глас людской. Я — позабытый стих.
                 rhyme_scheme = '-AABB'
+            elif rhyme_graph_str == '1 0 0 0 0':
+                # Одна странная дама с Камчатки
+                # Одевала на ноги перчатки
+                # говорила я утка
+                # и задрав к верху юбку
+                # начинала носиться по грядкам
+                rhyme_scheme = 'AA---'
             else:
                 rhyme_scheme = '-----'
         elif nlines == 6:
@@ -3133,8 +3232,16 @@ class PoetryStressAligner(object):
         # 20-04-2025
         if best_score <= 0.1:
             score, stressed_lines, line_mappings, meter, rhyme_scheme, rhyme_graph = self.align_weak0(lines)
+
+            do_prefer_weak = False
             if rhyme_scheme.count('-') < best_rhyme_scheme.count('-'):
-                # Accept this alignment.
+                # Accept this alignment because it detects more rhymes
+                do_prefer_weak = True
+            else:
+                if self.detect_stress_lacunas([v[0] for v in best_variant]):
+                    do_prefer_weak = True
+
+            if do_prefer_weak:
                 return PoetryAlignment(stressed_lines,
                                        score,
                                        meter,
@@ -3275,7 +3382,7 @@ class PoetryStressAligner(object):
             num_syllables = [pline.get_num_syllables() for pline in plines]
             dolnik_patterns = self.get_dolnik_patterns(num_syllables)
             stressed_words_groups0 = [
-                StressVariantsSlot.build(poetry_words=pline.pwords, aligner=self, allow_stress_shift=False, allow_unstress12=True) for
+                StressVariantsSlot.build(poetry_words=pline.pwords, aligner=self, allow_stress_shift=False, allow_unstress12=False) for
                 pline in plines]
 
             for dolnik_pattern in dolnik_patterns:
@@ -3290,6 +3397,7 @@ class PoetryStressAligner(object):
                     for metre_mapping in cursor.map(stressed_words_groups0[ipline], self):
                         if metre_mapping.score > max_score:
                             max_score = metre_mapping.score
+                            metre_mapping.enforce_intrinsic_word_accentuation()
                             stressed_words = [m.word for m in metre_mapping.word_mappings]
                             new_stress_line = LineStressVariant(pline, stressed_words, self)
                             best_mapping = metre_mapping
@@ -3471,6 +3579,28 @@ class PoetryStressAligner(object):
                     best_variant = new_stress_lines
                     best_rhyme_graph = rhyme_graph
                     best_metre_signature = dolnik_pattern
+
+
+        # 20-04-2025
+        if best_score <= 0.1:
+            score, stressed_lines, line_mappings, meter, rhyme_scheme, rhyme_graph = self.align_weak0(lines)
+
+            do_prefer_weak = False
+            if rhyme_scheme.count('-') < best_rhyme_scheme.count('-'):
+                # Accept this alignment because it detects more rhymes
+                do_prefer_weak = True
+            else:
+                if self.detect_stress_lacunas([v[0] for v in best_variant]):
+                    do_prefer_weak = True
+
+            if do_prefer_weak:
+                return PoetryAlignment(stressed_lines,
+                                       score,
+                                       meter,
+                                       rhyme_scheme=rhyme_scheme,
+                                       rhyme_graph=rhyme_graph,
+                                       metre_mappings=line_mappings)
+
 
         if best_variant is None:
             # В этом случае вернем результат с нулевым скором и особым текстом, чтобы
