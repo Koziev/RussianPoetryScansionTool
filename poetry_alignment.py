@@ -1705,6 +1705,39 @@ class CustomUnpickler(pickle.Unpickler):
             return super().find_class(module, name)
 
 
+class RhymeGraphNode(object):
+    def __init__(self):
+        self.offset_to_right = 0
+        self.fit_to_right = False
+        self.offset_to_left = 0
+        self.fit_to_left = True
+        self.rhyme_scheme_letter = '-'
+
+
+def convert_rhyme_graph_to_scheme(rhyme_graph: List[int]) -> str:
+    line_rhymes = [RhymeGraphNode() for _ in rhyme_graph]
+    for i1, offset in enumerate(rhyme_graph):
+        if offset is not None:
+            i2 = i1 + offset
+            line_rhymes[i1].offset_to_right = (i2-i1)
+            line_rhymes[i1].fit_to_right = True
+            line_rhymes[i2].offset_to_left = (i1-i2)
+            line_rhymes[i2].fit_to_left = True
+
+    current_char = ord('A')
+    for i, rhyme in enumerate(line_rhymes):
+        if rhyme.offset_to_right > 0:
+            if rhyme.rhyme_scheme_letter == '-':
+                rhyme.rhyme_scheme_letter = chr(current_char)
+                current_char += 1
+
+            line_rhymes[i+rhyme.offset_to_right].rhyme_scheme_letter = rhyme.rhyme_scheme_letter
+
+    rhyme_scheme = ''.join([rhyme.rhyme_scheme_letter for rhyme in line_rhymes])
+
+    return rhyme_scheme
+
+
 class PoetryStressAligner(object):
     def __init__(self, udpipe, accentuator, model_dir: str, enable_dolnik: bool=True):
         self.max_words_per_line = 10
@@ -2493,72 +2526,74 @@ class PoetryStressAligner(object):
             else:
                 rhyme_scheme = '-----'
         elif nlines == 6:
-            if rhyme_graph_str == '1 3 1 0 1 0':
-                # То воплощаюсь морскою звездой, то притворяюсь ознобом тумана.
-                # Изобличаемый их простотой, пробую мудрую жизнь океана.
-                # Солоно-горько слезится вода неимоверны людские глубины.
-                # На полюсах замерзают года в две исполинские льдины.
-                # Холод глубин порождает разрыв - айсберг красуется сгустком тумана.
-                # Солнцем волшебные ткутся ковры - славный презент экзотическим странам.
-                rhyme_scheme = 'AABBAA'
-            elif rhyme_graph_str == '1 1 1 0 1 0':
-                # Полтинник, это много или мало?
-                # Прожить б ещё полтинник не мешало.
-                # Ещё разок хочу начать сначала,
-                # Но жизнь идёт, и остаётся мало...
-                # Такая уж судьба у человека,
-                # Ведь мало кто живёт длиннее века.
-                rhyme_scheme = 'AAAABB'
-            elif rhyme_graph_str == '2 2 2 2 0 0':
-                # Что мечты мои волнует
-                # На привычном ложе сна?
-                # На лицо и грудь мне дует
-                # Свежим воздухом весна,
-                # Тихо очи мне целует
-                # Полуночная луна.
-                rhyme_scheme = 'ABABAB'
-            elif rhyme_graph_str == '1 0 3 1 0 0':
-                # Ка́к цари́це е́й служи́ли,
-                # Сто́лько сре́дств в неё́ вложи́ли,
-                # А отда́чи - никако́й!
-                # Та́к и вы́гнали из кле́тки -
-                # Пу́сть идё́т и жрё́т объе́дки
-                # У столо́вки заводско́й.
-                rhyme_scheme = 'AABCCB'
-            elif rhyme_graph_str == '1 0 1 0 1 0':
-                # Очки́ смея́лись над глаза́ми:
-                # - Мы пе́рвые, а вы́ за на́ми!
-                # Кичи́лся делово́й костю́м:
-                # - Собо́й я затмева́ю у́м!
-                # Боти́нки гро́мче все́х крича́ли:
-                # - На на́с все де́ржится, слыха́ли?
-                rhyme_scheme = 'AABBCC'
-            elif rhyme_graph_str == '2 2 0 0 1 0':
-                # И я́ почти́ Ома́р Хайя́м
-                # Во-пе́рвых мы́ одно́й конфе́ссии
-                # Он бы́л врачо́м когда́-то та́м
-                # И я́, счита́й, двойно́й профе́ссии
-                # Он бы́л врачо́м ещё́ поэ́том
-                # А я́ поэ́т, шофё́р при э́том
-                rhyme_scheme = 'ABABCC'
-            elif rhyme_graph_str == '1 2 3 1 0 0':
-                # Но гло́жет мо́зг сомне́ние,
-                # Како́е-то́ - волне́ние.
-                # Неи́стово шуми́т в бачке́ вода́!
-                # К утру́ оцепене́ние,
-                # И я́ друго́го мне́ния -
-                # Пора́ бы мне́ наве́даться туда́.
-                rhyme_scheme = 'AABCCB'
-            elif rhyme_graph_str == '1 1 0 1 1 0':
-                # Возле топкого болота
-                # На большого бегемота
-                # Накатила вдруг зевота:
-                # Назеваться хочет всласть,
-                # Распахнул пошире пасть.
-                # Не спеши в нее попасть.
-                rhyme_scheme = 'AAABBB'
-            else:
-                rhyme_scheme = '------'
+            rhyme_scheme = convert_rhyme_graph_to_scheme(rhyme_graph)
+
+            # if rhyme_graph_str == '1 3 1 0 1 0':
+            #     # То воплощаюсь морскою звездой, то притворяюсь ознобом тумана.
+            #     # Изобличаемый их простотой, пробую мудрую жизнь океана.
+            #     # Солоно-горько слезится вода неимоверны людские глубины.
+            #     # На полюсах замерзают года в две исполинские льдины.
+            #     # Холод глубин порождает разрыв - айсберг красуется сгустком тумана.
+            #     # Солнцем волшебные ткутся ковры - славный презент экзотическим странам.
+            #     rhyme_scheme = 'AABBAA'
+            # elif rhyme_graph_str == '1 1 1 0 1 0':
+            #     # Полтинник, это много или мало?
+            #     # Прожить б ещё полтинник не мешало.
+            #     # Ещё разок хочу начать сначала,
+            #     # Но жизнь идёт, и остаётся мало...
+            #     # Такая уж судьба у человека,
+            #     # Ведь мало кто живёт длиннее века.
+            #     rhyme_scheme = 'AAAABB'
+            # elif rhyme_graph_str == '2 2 2 2 0 0':
+            #     # Что мечты мои волнует
+            #     # На привычном ложе сна?
+            #     # На лицо и грудь мне дует
+            #     # Свежим воздухом весна,
+            #     # Тихо очи мне целует
+            #     # Полуночная луна.
+            #     rhyme_scheme = 'ABABAB'
+            # elif rhyme_graph_str == '1 0 3 1 0 0':
+            #     # Ка́к цари́це е́й служи́ли,
+            #     # Сто́лько сре́дств в неё́ вложи́ли,
+            #     # А отда́чи - никако́й!
+            #     # Та́к и вы́гнали из кле́тки -
+            #     # Пу́сть идё́т и жрё́т объе́дки
+            #     # У столо́вки заводско́й.
+            #     rhyme_scheme = 'AABCCB'
+            # elif rhyme_graph_str == '1 0 1 0 1 0':
+            #     # Очки́ смея́лись над глаза́ми:
+            #     # - Мы пе́рвые, а вы́ за на́ми!
+            #     # Кичи́лся делово́й костю́м:
+            #     # - Собо́й я затмева́ю у́м!
+            #     # Боти́нки гро́мче все́х крича́ли:
+            #     # - На на́с все де́ржится, слыха́ли?
+            #     rhyme_scheme = 'AABBCC'
+            # elif rhyme_graph_str == '2 2 0 0 1 0':
+            #     # И я́ почти́ Ома́р Хайя́м
+            #     # Во-пе́рвых мы́ одно́й конфе́ссии
+            #     # Он бы́л врачо́м когда́-то та́м
+            #     # И я́, счита́й, двойно́й профе́ссии
+            #     # Он бы́л врачо́м ещё́ поэ́том
+            #     # А я́ поэ́т, шофё́р при э́том
+            #     rhyme_scheme = 'ABABCC'
+            # elif rhyme_graph_str == '1 2 3 1 0 0':
+            #     # Но гло́жет мо́зг сомне́ние,
+            #     # Како́е-то́ - волне́ние.
+            #     # Неи́стово шуми́т в бачке́ вода́!
+            #     # К утру́ оцепене́ние,
+            #     # И я́ друго́го мне́ния -
+            #     # Пора́ бы мне́ наве́даться туда́.
+            #     rhyme_scheme = 'AABCCB'
+            # elif rhyme_graph_str == '1 1 0 1 1 0':
+            #     # Возле топкого болота
+            #     # На большого бегемота
+            #     # Накатила вдруг зевота:
+            #     # Назеваться хочет всласть,
+            #     # Распахнул пошире пасть.
+            #     # Не спеши в нее попасть.
+            #     rhyme_scheme = 'AAABBB'
+            # else:
+            #     rhyme_scheme = '------'
         elif nlines == 3:
             if rhyme_graph_str == '0 0 0':
                 rhyme_scheme = '---'
