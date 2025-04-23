@@ -24,7 +24,8 @@ pip install .
 
 The algorithm requires some models and pronunciation dictionary files. These files exceed my GitHub's LFS quota so
 I made them available in a compressed archive hosted on Google Drive:
-[Download the archive](https://drive.google.com/file/d/1ofySC3c8EDTkx2GxDakw6gQJf_y0UUMA) and extract it into the root directory of the repository.
+[Download the archive](https://drive.google.com/file/d/1ofySC3c8EDTkx2GxDakw6gQJf_y0UUMA) and extract it somewhere.
+Then pass the path to extraction directory in `create_rpst_instance` function - see below.
 
 To see `RPST` in action, install it and run the following code:
 
@@ -32,7 +33,7 @@ To see `RPST` in action, install it and run the following code:
 import russian_scansion
 
 
-tool = russian_scansion.create_rpst_instance()
+tool = russian_scansion.create_rpst_instance('models/extraction/directory')
 
 poem = """Вменяйте ж мне в вину, что я столь мал,
 Чтоб за благодеянья Вам воздать,
