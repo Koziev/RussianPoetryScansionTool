@@ -24,7 +24,7 @@ import logging
 import re
 import huggingface_hub
 
-from accentuator import AccentuatorWrapper
+from .accentuator import AccentuatorWrapper
 
 import rusyllab
 

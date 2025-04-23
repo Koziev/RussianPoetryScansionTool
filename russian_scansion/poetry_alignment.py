@@ -45,9 +45,9 @@ import numpy as np
 import pickle
 from typing import List, Set, Dict, Tuple, Optional
 
-from phonetic import Accents, rhymed2, rhymed_fuzzy2, render_xword, WordAccentuation
-from metre_classifier import get_syllables
-from whitespace_normalization import normalize_whitespaces
+from .phonetic import Accents, rhymed2, rhymed_fuzzy2, render_xword, WordAccentuation
+from .metre_classifier import get_syllables
+from .whitespace_normalization import normalize_whitespaces
 
 
 # Коэффициенты для штрафов за разные отступления от идеальной метрики.
@@ -1127,7 +1127,8 @@ class LineStressVariant(object):
                     # вот у слона́ гора́здо ши́ре
                     # чем у                       <=======
                     if i > 0:
-                        unstressed_prefix = self.stressed_words[i-1].poetry_word.form[-1].lower()
+                        if re.match(r'\w', self.stressed_words[i-1].poetry_word.form[-1], flags=re.I):
+                            unstressed_prefix = self.stressed_words[i-1].poetry_word.form[-1].lower()
 
                 # все слова, кроме пунктуации, справа от данного сформируют безударный хвост клаузуллы
                 for i2 in range(i+1, len(self.stressed_words)):
