@@ -11,15 +11,53 @@ The **Russian Poetry Scansion Tool** (RPST) is a Python library designed for the
 
 Please refer to my paper for more details: [Automated Evaluation of Meter and Rhyme in Russian Generative and Human-Authored Poetry](https://arxiv.org/abs/2502.20931).
 
-### Usage notes
 
-The stress prediction model and pronunciation dictionary files required for `RPST` exceed my GitHub's LFS quota. These files are available in a compressed archive hosted on Google Drive.
+### Installation
+
+Run the following commands in console:
+
+```bash
+git clone https://github.com/Koziev/RussianPoetryScansionTool
+cd RussianPoetryScansionTool
+pip install .
+```
+
+The algorithm requires some models and pronunciation dictionary files. These files exceed my GitHub's LFS quota so
+I made them available in a compressed archive hosted on Google Drive:
 [Download the archive](https://drive.google.com/file/d/1ofySC3c8EDTkx2GxDakw6gQJf_y0UUMA) and extract it into the root directory of the repository.
 
-To see `RPST` in action, run the provided `usage_example.py` script. The output must be as follows:
+To see `RPST` in action, install it and run the following code:
+
+```python
+import russian_scansion
+
+
+tool = russian_scansion.create_rpst_instance()
+
+poem = """Вменяйте ж мне в вину, что я столь мал,
+Чтоб за благодеянья Вам воздать,
+Что к Вашей я любви не воззывал,
+Чтоб узами прочней с собой связать,
+Что часто тёмным помыслом я сам
+Часы, Вам дорогие столь, дарил,
+Что я вверялся часто парусам,
+Чей ветр меня от Вас вдаль уносил.
+Внесите в список Ваш: мой дикий нрав,
+Ошибки, факты, подозрений ложь,
+Но, полностью вину мою признав,
+Возненавидя, не казните всё ж."""
+
+scansion = tool.align(poem.split('\n'))
+
+print('score={} meter={} scheme={}'.format(scansion.score, scansion.meter, scansion.rhyme_scheme))
+print(scansion.get_stressed_lines(show_secondary_accentuation=True))
+```
+
+
+The output must be like this:
 
 ```
-score=0.5403600876626367 meter=ямб scheme=None
+score=0.34583045610408747 meter=ямб scheme=None
 Вменя́йте ж мне́ в вину́, что я́ столь ма́л,
 Чтоб за благодея́нья Ва́м возда́ть,
 Что к Ва́шей я́ любви́ не воззыва́л,
@@ -34,7 +72,8 @@ score=0.5403600876626367 meter=ямб scheme=None
 Возненави́дя, не казни́те всё́ ж.
 ```
 
-The primary stress in a word is marked in the output using the `Combining Acute Accent` symbol with the code U+0301. Secondary stresses, if detected and allowed to be output, are marked using the `Combining Grave Accent` symbol with the code U+0300:
+The primary stress in a word is marked in the output using the `Combining Acute Accent` symbol with the code U+0301.
+Secondary stresses, if detected and allowed to be output, are marked using the `Combining Grave Accent` symbol with the code U+0300:
 
 ```
 Октя́брь багря́ным пла́менем пыла́ет,

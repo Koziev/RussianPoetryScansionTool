@@ -6,4 +6,5 @@ coloredlogs==15.0.1
 jellyfish==1.0.3
 jsonpickle==3.0.4
 six
-git+https://github.com/Koziev/rusyllab
+numpy
+rusyllab @ git+https://github.com/Koziev/rusyllab
