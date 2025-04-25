@@ -90,7 +90,12 @@ The analysis outputs a **technicality score** (0 to 1) measuring how strictly th
 - **1.0**: Perfect meter adherence with clear rhymes
 - **0.0**: No detectable meter or rhyme
 
-Example of perfect score (1.0) is a poem written in amphibrach meter with ABAB rhyme by Georgy Ivanov:
+Values between 0 and 1 indicate varying degrees of metrical irregularities, rhyme absence or different type of lexical defects.
+Practical threshold:
+  - >0.1: Likely syllabo-tonic verse
+  - <0.1: Probable prose or non-metrical text
+
+An example of perfect score (1.0):
 
 ```
 Эо́ловой а́рфой вздыха́ет печа́ль
@@ -99,10 +104,18 @@ Example of perfect score (1.0) is a poem written in amphibrach meter with ABAB r
 Кото́рой оку́таны не́жные пле́чи.
 ```
 
-Values between 0 and 1 indicate varying degrees of metrical irregularities, rhyme absence or different type of lexical defects.
-Practical threshold:
-  - >0.1: Likely syllabo-tonic verse
-  - <0.1: Probable prose or non-metrical text
+This is a poem written in amphibrach meter with ABAB rhyme by Georgy Ivanov.
+
+An example of poor poem (~0.00095):
+
+```
+Маленький мальчик компьютер купил
+И к Интернету его подключил!
+Не может никто понять и узреть -
+Как же накрылась всемирная сеть!
+```
+
+The third line in this quatrain doesn't follow the dactylic meter, causing the overall score to fall below 0.1.
 
 
 ### Algorithm Features
