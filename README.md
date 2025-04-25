@@ -83,6 +83,28 @@ Secondary stresses, if detected and allowed to be output, are marked using the `
 Ей по́д ноги смущё́нно расстила́ет,
 ```
 
+### Technicality Scoring and its interpretation
+
+The analysis outputs a **technicality score** (0 to 1) measuring how strictly the text follows Russian versification rules:
+
+- **1.0**: Perfect meter adherence with clear rhymes
+- **0.0**: No detectable meter or rhyme
+
+Example of perfect score (1.0) is a poem written in amphibrach meter with ABAB rhyme by Georgy Ivanov:
+
+```
+Эо́ловой а́рфой вздыха́ет печа́ль
+И зве́зд восковы́х зажига́ются све́чи
+И да́льний зака́т, как перси́дская ша́ль,
+Кото́рой оку́таны не́жные пле́чи.
+```
+
+Values between 0 and 1 indicate varying degrees of metrical irregularities, rhyme absence or different type of lexical defects.
+Practical threshold:
+  - >0.1: Likely syllabo-tonic verse
+  - <0.1: Probable prose or non-metrical text
+
+
 ### Algorithm Features
 
 #### Stanza Processing
