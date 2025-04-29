@@ -24,7 +24,7 @@ import logging
 import re
 import huggingface_hub
 
-from .accentuator import AccentuatorWrapper
+from accentuator import AccentuatorWrapper
 
 import rusyllab
 
@@ -66,6 +66,20 @@ class WordAccentuation(object):
         """Для слов с единственной гласной, которая будет ударной"""
         return WordAccentuation(1, None)
 
+    def expose_accentuation(self, word: str) -> str:
+        cx = []
+        vowel_count = 0
+        for c in word:
+            cx.append(c)
+            if c in 'аеёиоуыэюя':
+                vowel_count += 1
+                ivowel = vowel_count - 1
+                if self.secondary_accentuation and self.secondary_accentuation[ivowel] == 2:
+                    cx.append('\u0300')
+                elif self.stress_pos == vowel_count:
+                    cx.append('\u0301')
+        return ''.join(cx)
+
 
 class Accents:
     def __init__(self, device="cuda"):
@@ -103,6 +117,23 @@ class Accents:
 
         with open(os.path.join(data_dir, 'prefix_derivation.json')) as f:
             self.derivation_data = json.load(f)
+
+        self.verb_prefixes = set(self.derivation_data['verb']['prefixes'])
+        self.verb_prefixes_min_len = min(map(len, self.verb_prefixes))
+        self.verb_prefixes_max_len = max(map(len, self.verb_prefixes))
+
+        # Prepare the sets and values required for compund word handling
+        self.adj_prefixes = set(self.derivation_data['adj']['prefixes'] + self.derivation_data['compound_prefixes'])
+        self.adj_prefixes_min_len = min(map(len, self.adj_prefixes))
+        self.adj_prefixes_max_len = max(map(len, self.adj_prefixes))
+
+        self.noun_prefixes = set(self.derivation_data['noun']['prefixes'] + self.derivation_data['compound_prefixes'])
+        self.noun_prefixes_min_len = min(map(len, self.noun_prefixes))
+        self.noun_prefixes_max_len = max(map(len, self.noun_prefixes))
+
+        compound_prefixes = set(self.derivation_data['compound_prefixes'])
+        self.compound_prefixes_min_len = min(map(len, compound_prefixes))
+        self.compound_prefixes_max_len = max(map(len, compound_prefixes))
 
         self.yo_words = dict()
 
@@ -351,6 +382,21 @@ class Accents:
             pickle.dump(self.rhyming_dict, f)
             pickle.dump(self.derivation_data, f)
 
+            pickle.dump(self.verb_prefixes, f)
+            pickle.dump(self.verb_prefixes_min_len, f)
+            pickle.dump(self.verb_prefixes_max_len, f)
+
+            pickle.dump(self.adj_prefixes, f)
+            pickle.dump(self.adj_prefixes_min_len, f)
+            pickle.dump(self.adj_prefixes_max_len, f)
+
+            pickle.dump(self.noun_prefixes, f)
+            pickle.dump(self.noun_prefixes_min_len, f)
+            pickle.dump(self.noun_prefixes_max_len, f)
+
+            pickle.dump(self.compound_prefixes_min_len, f)
+            pickle.dump(self.compound_prefixes_max_len, f)
+
     def load_pickle(self, path):
         with open(path, 'rb') as f:
             self.ambiguous_accents = pickle.load(f)
@@ -362,6 +408,21 @@ class Accents:
             self.rhymed_words = pickle.load(f)
             self.rhyming_dict = pickle.load(f)
             self.derivation_data = pickle.load(f)
+
+            self.verb_prefixes = pickle.load(f)
+            self.verb_prefixes_min_len = pickle.load(f)
+            self.verb_prefixes_max_len = pickle.load(f)
+
+            self.adj_prefixes = pickle.load(f)
+            self.adj_prefixes_min_len = pickle.load(f)
+            self.adj_prefixes_max_len = pickle.load(f)
+
+            self.noun_prefixes = pickle.load(f)
+            self.noun_prefixes_min_len = pickle.load(f)
+            self.noun_prefixes_max_len = pickle.load(f)
+
+            self.compound_prefixes_min_len = pickle.load(f)
+            self.compound_prefixes_max_len = pickle.load(f)
 
     def after_loading(self, model_name_or_path):
         self.stress_model = AccentuatorWrapper(model_name_or_path, self.device)
@@ -393,7 +454,34 @@ class Accents:
         return c1
 
     def get_secondary_accentuation(self, word: str):
-        return self.secondary_stress_dict.get(word)
+        if word in self.secondary_stress_dict:
+            return self.secondary_stress_dict[word]
+
+        if word in self.word_accents_dict or word in self.ambiguous_accents or word in self.ambiguous_accents2:
+            return None
+
+        for prefix_len in range(self.compound_prefixes_min_len, min(self.compound_prefixes_max_len, len(word))):
+            head = word[:prefix_len]
+            if head in self.derivation_data['compound2stress']:
+                tail = word[prefix_len:]
+                if tail in self.word_accents_dict or tail in self.ambiguous_accents or tail in self.ambiguous_accents2:
+                    stressed_head = self.derivation_data['compound2stress'][head]
+                    secondary_stress_pos = 0
+                    vowel_count = 0
+                    for c in stressed_head:
+                        if c in 'аеёиоуыэюя':
+                            vowel_count += 1
+                        elif c in 'АЕЁИОУЫЭЮЯ':
+                            vowel_count += 1
+                            secondary_stress_pos = vowel_count
+                            break
+
+                    if secondary_stress_pos > 0:
+                        stressing = [0] * self.get_vowel_count(word)
+                        stressing[secondary_stress_pos-1] = 2
+                        return stressing
+
+        return None
 
     def yoficate(self, word):
         return self.yo_words.get(word, word)
@@ -1032,64 +1120,134 @@ class Accents:
         # TODO: !!! префиксальную деривация перевести на использование TRIE для подбора префикса !!!
         if ud_tags and 'VERB' in ud_tags:
             # Глагольная префиксальная деривация.
-            for prefix in self.derivation_data['verb']['prefixes']:
-                if word.startswith(prefix) and word[len(prefix):] in self.derivation_data['verb']['verb2stress']:
-                    stressed_forms = self.derivation_data['verb']['verb2stress'][word[len(prefix):]]
-                    res = []
-                    for stressed_form in stressed_forms:
-                        stressed_word = prefix + stressed_form
-                        n_vowels = 0
-                        for c in stressed_word:
-                            if c in 'уеыаоэёяию':
-                                n_vowels += 1
-                            elif c == '\u0301':
-                                stress_pos = n_vowels
-                                res.append(WordAccentuation(stress_pos, secondary_accentuation))
-                    return res
+            secondary_accentuation = None
+
+            for prefix_len in range(self.verb_prefixes_min_len, min(self.verb_prefixes_max_len, len(word))+1):
+                prefix = word[:prefix_len]
+                if prefix in self.derivation_data['verb']['prefixes']:
+                    if word[len(prefix):] in self.derivation_data['verb']['verb2stress']:
+                        stressed_forms = self.derivation_data['verb']['verb2stress'][word[len(prefix):]]
+                        res = []
+                        for stressed_form in stressed_forms:
+                            stressed_word = prefix + stressed_form
+                            n_vowels = 0
+                            for c in stressed_word:
+                                if c in 'уеыаоэёяию':
+                                    n_vowels += 1
+                                elif c == '\u0301':
+                                    stress_pos = n_vowels
+                                    res.append(WordAccentuation(stress_pos, secondary_accentuation))
+                                    break
+                        return res
 
         elif ud_tags and any((pos in ud_tags) for pos in ('NOUN', 'PROPN', 'ADJ')):
             # Префиксальная деривация для существительных и прилагательных
             pos_prefixes = None
             pos2stress = None
+            min_prefix_len = None
+            max_prefix_len = None
             if 'ADJ' in ud_tags:
-                pos_prefixes = self.derivation_data['adj']['prefixes'] + self.derivation_data['compound_prefixes']
+                #pos_prefixes = self.derivation_data['adj']['prefixes'] + self.derivation_data['compound_prefixes']
+                pos_prefixes = self.adj_prefixes
                 pos2stress = self.derivation_data['adj']['adj2stress']
+                min_prefix_len = self.adj_prefixes_min_len
+                max_prefix_len = self.adj_prefixes_max_len
             elif any((pos in ud_tags) for pos in ('NOUN', 'PROPN')):
-                pos_prefixes = self.derivation_data['noun']['prefixes'] + self.derivation_data['compound_prefixes']
+                #pos_prefixes = self.derivation_data['noun']['prefixes'] + self.derivation_data['compound_prefixes']
+                pos_prefixes = self.noun_prefixes
                 pos2stress = self.derivation_data['noun']['noun2stress']
+                min_prefix_len = self.noun_prefixes_min_len
+                max_prefix_len = self.noun_prefixes_max_len
 
             if pos_prefixes:
-                for prefix in pos_prefixes:
-                    if word.startswith(prefix) and word[len(prefix):] in pos2stress:
-                        stressed_forms = pos2stress[word[len(prefix):]]
-                        res = []
-                        for stressed_form in stressed_forms:
-                            stressed_word = prefix + stressed_form
+                for prefix_len in range(min_prefix_len, min(max_prefix_len, len(word))+1):
+                    prefix = word[:prefix_len]
+                    if prefix in pos_prefixes:
 
-                            if not secondary_accentuation and prefix in self.derivation_data['compound2stress']:
-                                prefix_stress = self.derivation_data['compound2stress'][prefix]
-                                secondary_accentuation = []
-                                n_vowels = 0
-                                for c in prefix_stress:
-                                    if c.lower() in 'уеыаоэёяию':
-                                        n_vowels += 1
-                                        if c in 'АЕЁИОУЫЭЮЯ':
-                                            secondary_accentuation.append(2)
-                                        else:
+                        stressed_forms = None
+                        tail = word[prefix_len:]
+                        if tail in pos2stress:
+                            stressed_forms = pos2stress[tail]
+                        elif tail in self.derivation_data['compound_tails']:
+                            stressed_forms = [self.derivation_data['compound_tails'][tail]]
+
+                        if stressed_forms:
+                            res = []
+                            for stressed_form in stressed_forms:
+                                stressed_word = prefix + stressed_form
+
+                                secondary_accentuation = None
+                                if prefix in self.derivation_data['compound2stress']:
+                                    secondary_accentuation = []
+                                    prefix_stress = self.derivation_data['compound2stress'][prefix]
+                                    n_vowels = 0
+                                    for c in prefix_stress:
+                                        if c.lower() in 'уеыаоэёяию':
+                                            n_vowels += 1
+                                            if c in 'АЕЁИОУЫЭЮЯ':
+                                                secondary_accentuation.append(2)
+                                            else:
+                                                secondary_accentuation.append(0)
+                                    for c in stressed_form.lower():
+                                        if c in 'уеыаоэёяию':
                                             secondary_accentuation.append(0)
-                                for c in stressed_form.lower():
+
+                                n_vowels = 0
+                                for c in stressed_word:
                                     if c in 'уеыаоэёяию':
-                                        secondary_accentuation.append(0)
+                                        n_vowels += 1
 
+                                    elif c == '\u0301':
+                                        stress_pos = n_vowels
+                                        res.append(WordAccentuation(stress_pos, secondary_accentuation))
+                                        break
+                            return res
+        elif not ud_tags:
+            # Если тэги не заданы - пробуем все варианты префиксов составных слов.
+
+            for prefix_len in range(self.compound_prefixes_min_len, min(self.compound_prefixes_max_len, len(word)) + 1):
+                prefix = word[:prefix_len]
+
+                stressed_forms = None
+                if prefix in self.adj_prefixes:
+                    if word[prefix_len:] in self.derivation_data['adj']['adj2stress']:
+                        stressed_forms = self.derivation_data['adj']['adj2stress'][word[prefix_len:]]
+
+                if stressed_forms is None and prefix in self.noun_prefixes:
+                    if word[prefix_len:] in self.derivation_data['noun']['noun2stress']:
+                        stressed_forms = self.derivation_data['noun']['noun2stress'][word[prefix_len:]]
+
+                if stressed_forms:
+                    res = []
+                    for stressed_form in stressed_forms:
+                        stressed_word = prefix + stressed_form
+
+                        secondary_accentuation = None
+                        if prefix in self.derivation_data['compound2stress']:
+                            prefix_stress = self.derivation_data['compound2stress'][prefix]
+                            secondary_accentuation = []
                             n_vowels = 0
-                            for c in stressed_word:
-                                if c in 'уеыаоэёяию':
+                            for c in prefix_stress:
+                                if c.lower() in 'уеыаоэёяию':
                                     n_vowels += 1
+                                    if c in 'АЕЁИОУЫЭЮЯ':
+                                        secondary_accentuation.append(2)
+                                    else:
+                                        secondary_accentuation.append(0)
+                            for c in stressed_form.lower():
+                                if c in 'уеыаоэёяию':
+                                    secondary_accentuation.append(0)
 
-                                elif c == '\u0301':
-                                    stress_pos = n_vowels
-                                    res.append(WordAccentuation(stress_pos, secondary_accentuation))
-                        return res
+                        n_vowels = 0
+                        for c in stressed_word:
+                            if c in 'уеыаоэёяию':
+                                n_vowels += 1
+
+                            elif c == '\u0301':
+                                stress_pos = n_vowels
+                                res.append(WordAccentuation(stress_pos, secondary_accentuation))
+                                break
+                    return res
 
         # Есть продуктивные приставки типа НЕ
         for prefix in 'не'.split():
@@ -1597,7 +1755,16 @@ def rhymed2(accentuator, word1, stress1, ud_tags1, unstressed_prefix1, unstresse
 
 fuzzy_ending_pairs0 = [
     #(r'\^эсна', r'\^эстна'), # интересно - честно
+    (r'\^ашынай', r'\^ашэнай'),  # xword1=м^ашынай xword2=нинакр^ашэнай  word1=машиной word2=ненакрашенной
+    (r'\^асный', r'\^асна'),  # xword1=кр^асный xword2=прикр^асна  word1=красный word2=прекрасна
+    (r'\^очэк', r'\^очэрк'),  # п^очэк xword2=^очэрк  word1=почек word2=очерк
+    (r'\^учэны', r'\^учыны'),  # xword1=пар^учэны xword2=изл^учыны  word1=поручены word2=излучины
+    (r'\^учыны', r'\^учэный'),  # xword1=укл^учыны xword2=пры^учэный  word1=уключины word2=приученный
     (r'\^учыны', r'\^учиный'),  # xword1=укл^учыны xword2=пры^учиный  word1=уключины word2=приученный
+    (r'ст\^аи', r'ст\^аю'),  # ст^аи xword2=пирилыст^аю  word1=стаи word2=перелистаю
+    (r'\^упка', r'\^упкай'),  # xword1=гал^упка xword2=^упкай  word1=голубка word2=юбкой
+    (r'\^осить', r'\^осыть'),  # xword1=пр^осить xword2=сбр^осыть  word1=проседь word2=сбросить
+    (r'([:C:])\^ае', r'[:1:]\^ая'),  # xword1=трамв^ае xword2=скрыв^ая  word1=трамвае word2=скрывая
     (r'\^у([:C:])ы', r'\^у[:1:]ыть'),  # xword1=д^ушы xword2=разр^ушыть  word1=души word2=разрушить
     (r'\^угые', r'\^угэа'),  # xword1=упр^угые xword2=исп^угэа  word1=упругие word2=испуге
     (r'\^ывае', r'\^ывая'),  # xword1=краснарич^ывае xword2=крас^ывая  word1=красноречивое word2=красивая
@@ -2256,8 +2423,11 @@ def render_xword(accentuator, word, stress_pos, ud_tags, unstressed_prefix, unst
                         # первую в слове, и после гласной, 'е' оставляем (должно быть что-то типа je)
                         pass
                     else:
-                        # металле ==> митал'э
                         if i == len(word)-1:
+                            # металле ==> митал'э
+                            c = 'э'
+                        elif word[i-1] in 'цчшщ':
+                            # иностранц[е]м
                             c = 'э'
                         else:
                             c = 'и'
