@@ -3317,6 +3317,33 @@ class PoetryStressAligner(object):
                                    metre_mappings=metre_mappings)
 
     def align_weak0(self, lines):
+        if len(lines) > 8:
+            # Split the list of lines into smaller chunks, process them separately and merge results.
+            chunk_size = 8
+            pool = list(lines)
+
+            merged_lines = []
+            merged_mappings = []
+            merged_rhyme_schemes = []
+            merged_rhyme_graph = []
+            merged_scores = []
+            merged_meters = []
+
+            while pool:
+                chunk = pool[:chunk_size]
+                pool = pool[chunk_size:]
+                best_score, best_lines, metre_mappings, best_metre, best_rhyme_scheme, best_rhyme_graph = self.align_weak0(chunk)
+
+                merged_lines.extend(best_lines)
+                merged_mappings.extend(metre_mappings)
+                merged_rhyme_schemes.append(best_rhyme_scheme)
+                merged_rhyme_graph.extend(best_rhyme_graph)
+                merged_scores.append(best_score)
+                merged_meters.append(best_metre)
+
+            # TODO - переименовать совпадающие буквы при слиянии merged_rhyme_schemes
+            return np.prod(merged_scores), merged_lines, merged_mappings, merged_meters[0], ''.join(merged_rhyme_schemes), merged_rhyme_graph
+
         for line in lines:
             tokens = tokenize(line)
             ntokens = len(tokens)
@@ -4718,7 +4745,10 @@ class RapBlockAlignment(object):
             text_representation = self.block_header
 
         if self.stressed_lines:
-            text_representation = text_representation + '\n' + '\n'.join(line.get_stressed_line() for line in self.stressed_lines)
+            if text_representation:
+                text_representation += '\n'
+
+            text_representation += '\n'.join(line.get_stressed_line() for line in self.stressed_lines)
 
         return text_representation
 
