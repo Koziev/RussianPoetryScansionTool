@@ -24,7 +24,7 @@ import logging
 import re
 import huggingface_hub
 
-from .accentuator import AccentuatorWrapper
+from transcriptor_models.torch_stress_model.accentuator import AccentuatorWrapper
 
 import rusyllab
 
@@ -1755,6 +1755,8 @@ def rhymed2(accentuator, word1, stress1, ud_tags1, unstressed_prefix1, unstresse
 
 fuzzy_ending_pairs0 = [
     #(r'\^эсна', r'\^эстна'), # интересно - честно
+    (r'\^очэм', r'\^очэнь'),  # впрочем - очень
+    (r'\^этир', r'\^эчэр'),  # ветер - вечер
     (r'\^ашынай', r'\^ашэнай'),  # xword1=м^ашынай xword2=нинакр^ашэнай  word1=машиной word2=ненакрашенной
     (r'\^асный', r'\^асна'),  # xword1=кр^асный xword2=прикр^асна  word1=красный word2=прекрасна
     (r'\^очэк', r'\^очэрк'),  # п^очэк xword2=^очэрк  word1=почек word2=очерк
