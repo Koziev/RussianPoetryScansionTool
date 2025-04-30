@@ -24,7 +24,7 @@ import logging
 import re
 import huggingface_hub
 
-from transcriptor_models.torch_stress_model.accentuator import AccentuatorWrapper
+from .accentuator import AccentuatorWrapper
 
 import rusyllab
 
@@ -1755,8 +1755,12 @@ def rhymed2(accentuator, word1, stress1, ud_tags1, unstressed_prefix1, unstresse
 
 fuzzy_ending_pairs0 = [
     #(r'\^эсна', r'\^эстна'), # интересно - честно
+    (r'ж\^эе', r'ш\^эя'),  # xword1=свиж^эе xword2=ш^эя  word1=свежее word2=шея
     (r'\^очэм', r'\^очэнь'),  # впрочем - очень
     (r'\^этир', r'\^эчэр'),  # ветер - вечер
+    (r'\^учый', r'\^учшый'),  # word1=колючий word2=лучший
+    (r'\^эстнасть', r'\^эснасть'),  # м^эстнасть xword2=слав^эснасть  word1=местность word2=словесность
+    (r'\^ощы', r'\^ощупь'),  # xword1=р^ощы xword2=на^ощупь  word1=рощи word2=наощупь
     (r'\^ашынай', r'\^ашэнай'),  # xword1=м^ашынай xword2=нинакр^ашэнай  word1=машиной word2=ненакрашенной
     (r'\^асный', r'\^асна'),  # xword1=кр^асный xword2=прикр^асна  word1=красный word2=прекрасна
     (r'\^очэк', r'\^очэрк'),  # п^очэк xword2=^очэрк  word1=почек word2=очерк
@@ -2335,9 +2339,13 @@ def render_xword(accentuator, word, stress_pos, ud_tags, unstressed_prefix, unst
     if k in xword_cases:
         return xword_cases[k]
 
-    if k == ('сердца', 1):
+    m1 = re.match(r'сердц(е|а|у|ем)', k[0], flags=re.I)
+    if m1 and k[1] == 1:
         # xword, clausula
-        xword_cases[k] = ('с^эрца', '^эрца')
+        ending = m1.group(1)
+        ending_phone = {"е": "э", "у": "у", "а": "а", "ем": "эм"}[ending]
+
+        xword_cases[k] = ('с^эрц'+ending_phone, '^эрц'+ending_phone)
         return xword_cases[k]
 
     unstressed_prefix_transcript = transcript_unstressed(unstressed_prefix)
