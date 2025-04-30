@@ -9,8 +9,9 @@ The **Russian Poetry Scansion Tool** (RPST) is a Python library designed for the
 - **Technicality Scoring**: Evaluates prosodic defects and calculates a *technicality* score, ranging from 0 (complete non-compliance with poetic constraints) to 1 (perfect compliance with a poetic meter).
 - **Rhyme Detection**: Identifies rhymes, including slant (fuzzy) rhymes.
 
-Please refer to my paper for more details: [Automated Evaluation of Meter and Rhyme in Russian Generative and Human-Authored Poetry](https://arxiv.org/abs/2502.20931).
+Please refer to the following paper for more details: [Automated Evaluation of Meter and Rhyme in Russian Generative and Human-Authored Poetry](https://arxiv.org/abs/2502.20931).
 
+We used this library to evaluate the generated poem in our research paper [Generation of Russian Poetry of Different Genres and Styles Using Neural Networks with Character-Level Tokenization](https://aclanthology.org/2025.latechclfl-1.6.pdf).
 
 ### Installation
 
@@ -161,6 +162,7 @@ The system uses heuristics to distinguish between:
 
 In some cases, the heuristics fails that leads to misclassification. The overall result of the markup in such cases may be incorrect.
 
+
 ### Markup Speed
 
 Performance benchmarks for the Russian Poetry Scansion Tool (measured on an Intel i7-9700K CPU @ 3.60GHz):
@@ -180,6 +182,7 @@ The `ArsPoetica` dataset, containing approximately 8.5k poems pre-processed by `
 
 Both datasets are openly available for research purposes.
 
+
 ### Development History
 
 This library originated as part of the [verslibre](https://github.com/Koziev/verslibre) project. The accentuation model and wrapper code were later separated and released as [accentuator](https://huggingface.co/inkoziev/accentuator) on Hugging Face. The `RPST` code eventually became available as a standalone library [here](https://github.com/RussianNLP/RussianPoetryScansionTool).
@@ -187,6 +190,13 @@ This library originated as part of the [verslibre](https://github.com/Koziev/ver
 Future development plans include:
 - Improving Russian poetry processing capabilities
 - Adding support for other languages (starting with English)
+
+
+### Where it is used
+
+We used this library to evaluate the generated poem in our research paper [Generation of Russian Poetry of Different Genres and Styles Using Neural
+Networks with Character-Level Tokenization](https://aclanthology.org/2025.latechclfl-1.6.pdf).
+
 
 ### License
 
