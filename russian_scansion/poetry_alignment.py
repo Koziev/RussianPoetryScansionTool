@@ -3201,6 +3201,38 @@ class PoetryStressAligner(object):
 
                     rhyme_scheme, rhyme_score, rhyme_graph = self.detect_rhyming(last_pwords, rhyming_detection_cache)
 
+                    if rhyme_scheme == '----' and n_sylla == (6, 5, 6, 5) and all((line == line.lower()) for line in lines):
+                        # Депрессяшки могут иметь особые рифмы, в которых одно слово рифмуется безударной частью:
+                        #
+                        # манит заграница
+                        # и ещё кровать
+                        # вот бы прям с кроватью
+                        # иммигрировать
+
+                        if last_pwords[3].is_simple():
+                            xword1, clausula1 = render_xword(self.accentuator,
+                                                             last_pwords[1].stressed_word.form,
+                                                             last_pwords[1].stressed_word.poetry_word.stress_pos,
+                                                             [last_pwords[1].stressed_word.poetry_word.upos] + last_pwords[1].stressed_word.poetry_word.tags,
+                                                             last_pwords[1].prefix,
+                                                             last_pwords[1].unstressed_tail)
+
+                            xword2, clausula2 = render_xword(self.accentuator,
+                                                             last_pwords[3].stressed_word.form,
+                                                             last_pwords[3].stressed_word.poetry_word.stress_pos,
+                                                             [last_pwords[3].stressed_word.poetry_word.upos] + last_pwords[3].stressed_word.poetry_word.tags,
+                                                             last_pwords[3].prefix,
+                                                             last_pwords[3].unstressed_tail)
+
+                            i1 = xword1.index('^')
+                            tail1 = xword1[i1+1:]
+
+                            if xword2.endswith(tail1):
+                                rhyme_scheme = '-A-A'
+                                rhyme_graph = [None, 2, None, None]
+                                rhyme_score = 0.5
+
+
                     # Учтем эффект ритма второго порядка: если рифмующиеся строки
                     # имеют точно совпадающие паттерны ударения, то уменьшим отличие скоров этих строк от 1 на 0.80.
                     #
