@@ -163,6 +163,83 @@ The system uses heuristics to distinguish between:
 In some cases, the heuristics fails that leads to misclassification. The overall result of the markup in such cases may be incorrect.
 
 
+### Genres and forms
+
+Below are examples of different genres and forms of Russian poetry processed by `RPST`.
+
+
+**две девятки**
+
+A couplet written in iambic meter, with two lines of 9 syllables each and a rhyme scheme of AA.
+
+```
+во мне́ нашли́ поро́чный ге́н но
+мне с ни́м легко́ и офиге́нно
+```
+
+```
+зря к ку́клам ру́ки распростё́р ты
+их ли́ца ту́склы кра́ски стё́рты
+```
+
+
+**порошки**
+
+A quatrain written in iambic meter, with a rhyme scheme of *-A-A* and syllable counts of 9-8-9-2 per line.
+These poems are always written without capital letters, without punctuation marks, often with deliberate deviations from spelling norms.
+
+```
+кафе́ францу́зское закры́лось
+в беспе́чном га́рлеме вчера́
+фуа́ там ча́сто подава́ли
+не гра́
+```
+
+
+**пирожки**
+
+A quatrain written in iambic meter without rhymes; the syllable counts per line are 9-8-9-8.
+Like a ***порошки***, these poems are written without capital letters, without punctuation marks, often with deliberate deviations from spelling norms.
+
+```
+я ва́м жела́ю что́ б не зна́ли
+вы бе́д печа́ли и тоски́
+и что́б меня́ совсе́м забы́ли
+и то́ что де́нег до́лжен ва́м
+```
+
+
+**депрессяшки**
+
+A quatrain written in trochee meter with -A-A rhyme scheme; the syllable counts per line are 6-5-6-5.
+For this hard form, the same comments about spelling, punctuation and text formatting apply as for the genres ***пирожки*** and ***порошки***.
+
+```
+ма́нит заграни́ца
+и ещё́ крова́ть
+во́т бы пря́м с крова́тью
+иммигри́ровать
+```
+
+
+**артишоки**
+
+A quatrain is written in amphibrach with ABAB rhyme scheme, 9-8-9-2 syllables per line.
+Rules for spelling, punctuation and text formatting are the same as for ***пирожки*** and ***порошки***.
+
+```
+усво́ив что и́стина та́м где вино́
+и пы́шные же́нщины в бро́ском
+оле́г продолжа́ет иска́ть всё равно́
+в бро́дском
+```
+
+
+... ***To be continued*** ...
+
+
+
+
 ### Markup Speed
 
 Performance benchmarks for the Russian Poetry Scansion Tool (measured on an Intel i7-9700K CPU @ 3.60GHz):
