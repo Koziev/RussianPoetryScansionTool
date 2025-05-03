@@ -13,6 +13,7 @@ Please refer to the following paper for more details: [Automated Evaluation of M
 
 We used this library to evaluate the generated poem in our research paper [Generation of Russian Poetry of Different Genres and Styles Using Neural Networks with Character-Level Tokenization](https://aclanthology.org/2025.latechclfl-1.6.pdf).
 
+
 ### Installation
 
 Run the following commands in console:
@@ -23,10 +24,13 @@ cd RussianPoetryScansionTool
 pip install .
 ```
 
-The algorithm requires some models and pronunciation dictionary files. These files exceed my GitHub's LFS quota so
-I made them available in a compressed archive hosted on Google Drive:
+The algorithm requires some models and pronunciation dictionary files.
+These files exceed my GitHub's LFS quota so I made them available in a compressed archive hosted on Google Drive:
 [Download the archive](https://drive.google.com/file/d/1ofySC3c8EDTkx2GxDakw6gQJf_y0UUMA) and extract it somewhere.
 Then pass the path to extraction directory in `create_rpst_instance` function - see below.
+
+
+### Usage
 
 To see `RPST` in action, install it and run the following code:
 
@@ -161,6 +165,62 @@ The system uses heuristics to distinguish between:
 ```Име́ть дли́нные во́лосы – э́то повсю́ду оставля́ть части́чку себя́.```
 
 In some cases, the heuristics fails that leads to misclassification. The overall result of the markup in such cases may be incorrect.
+
+
+#### Compound Words
+
+Russian frequently uses compound words in poetry (especially in certain genres).
+The RPST accounts for these by detecting such words, analyzing both roots and adjusting stress placement accordingly.
+
+How it works:
+
+1. **Stress Allocation**:
+
+   - The algorithm detects both roots in a compound word.
+   - Places a *secondary stress* on the first root.
+   - Places the *primary stress* on the second root.
+
+2. **Example**:
+
+   In the word **"гро̀зогро́м"** (from the words *"гроза́"* + *"гром"*):
+   - The primary stress falls on the second root (`гро́м`).
+   - The secondary stress shifts to the first syllable (`гро̀з`) in *"гроза́"* because the original stress in *"гроза́"* (on the ending `-а́`) is truncated in the compound form.
+
+**Illustration**:
+
+```
+Августо́вый гро̀зогро́м
+Расшуме́лся среди но́чки,
+И веде́рко за ведро́м
+Ли́лось из небе́сной бо́чки.
+```
+
+The secondary stress on the first root of the compound word can be completely
+suppressed as a result of adjustment to the meter, as for example in the following stanza
+on the word "о̀гнетво́рчество":
+
+```
+Расчища́я простра́нство Земли́,
+Огнетво́рчество Ду́х закали́т
+И во Бла́го Небе́сной Зари́,
+Краски Све́та повсю́ду внедри́т!
+```
+
+#### Verb derivation
+
+
+Another frequent source of nonce words in Russian poems and songs is the prefix derivation of verbs.
+For example, the verb "оттрепещу́" in the stanza below is formed using the prefix "от-" and
+the imperfective verb "трепещу́". Applying this method of word formation, the RPST algorithm always preserves
+the stress on the original verb form.
+
+```
+Я все́ми кра́сками оси́ны
+Оттрепещу́ и облечу́,
+Трево́жным кри́ком журавли́ным
+Тебе́ проща́нье прокричу́.
+```
+
 
 
 ### Genres and forms
