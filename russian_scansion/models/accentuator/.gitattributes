@@ -1,3 +1,0 @@
-accents.pkl filter=lfs diff=lfs merge=lfs -text
-pytorch_model.pth filter=lfs diff=lfs merge=lfs -text
-config.json filter=lfs diff=lfs merge=lfs -text
