@@ -19,7 +19,7 @@ with open("README.md") as fh:
 
 setuptools.setup(
     name="russian_scansion",
-    version="1.0.23",
+    version="1.0.25",
     author="Ilya Koziev",
     author_email="inkoziev@gmail.com",
     description="Russian Poetry Scansion Tool",
