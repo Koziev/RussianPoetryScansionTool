@@ -97,8 +97,8 @@ The analysis outputs a **technicality score** (0 to 1) measuring how strictly th
 
 Values between 0 and 1 indicate varying degrees of metrical irregularities, rhyme absence or different type of lexical defects.
 Practical threshold:
-  - >0.1: Likely syllabo-tonic verse
-  - <0.1: Probable prose or non-metrical text
+  - > 0.1: Likely syllabo-tonic verse
+  - < 0.1: Probable prose or non-metrical text
 
 An example of perfect score (1.0):
 
@@ -132,6 +132,9 @@ The algorithm processes each stanza independently. This approach:
 2. May introduce inaccuracies in:  
   - Part-of-speech tagging (due to enjambment), resulting in homograph resolution mistakes  
   - Rhyme scheme detection (when rhyming lines span adjacent stanzas)  
+
+
+
 
 #### Unstructured Text Handling
 
@@ -221,6 +224,41 @@ the stress on the original verb form.
 Тебе́ проща́нье прокричу́.
 ```
 
+
+#### Rhyme scheme representation
+
+When using the rhyme scheme derived from the analysis of poems, the following features should be taken into account.
+
+1) Stanzas are analyzed independently, so the same letter in the rhyme schemes for different stanzas can be repeated, while the corresponding lines in the stanzas are not connected by rhyme.
+
+The following poem has rhyme scheme `-A-A -A-A -A-A`:
+
+```
+А еще́ хочу́ найти́ я
+Ме́л. Цвето́чки рисова́ть.
+Потому́ что в "ма̀ртоми́ре"
+И́х под сне́гом не сыска́ть.
+
+И в моско́вской подворо́тне,
+Где́ поку́да ка́мер не́т,
+Разукра́сить "стѐного́род"
+В мо́й люби́мый же́лтый цве́т.
+
+Бѐнзора́дугу на лу́же
+Допроси́ть. Ты ту́т на ко́й?
+- Что́б, отве́тит, в "ма̀ртоми́ре"
+Бы́ть прекра́сной чепухо́й!
+```
+
+2) Usually, a line that does not rhyme with another line is designated by the symbol "-".
+An exception is the `AABA` scheme, typical for quatrains in the ruba'i genre:
+
+```
+Сизой ды́мкой подё́рнулся со́лнца захо́д,
+Он проро́чит нам все́м неизбе́жный ухо́д.
+Проведё́м же в поко́е оста́вшийся сро́к наш,
+Каждый де́нь, как после́дний, живя́ без забо́т.
+```
 
 
 ### Genres and forms
