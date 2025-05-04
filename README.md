@@ -125,6 +125,7 @@ The third line in this quatrain doesn't follow the dactylic meter, causing the o
 
 ### Algorithm Features
 
+
 #### Stanza Processing
 
 The algorithm processes each stanza independently. This approach:  
@@ -132,8 +133,6 @@ The algorithm processes each stanza independently. This approach:
 2. May introduce inaccuracies in:  
   - Part-of-speech tagging (due to enjambment), resulting in homograph resolution mistakes  
   - Rhyme scheme detection (when rhyming lines span adjacent stanzas)  
-
-
 
 
 #### Unstructured Text Handling
@@ -145,6 +144,35 @@ For long poems (7+ lines) without stanza breaks:
 This segmentation reduces computational complexity but may:  
 - Decrease part-of-speech tagging accuracy  
 - Prevent correct rhyme detection between lines in different segments  
+
+
+#### Rhyme detection
+
+In Russian poetry, **end rhymes** are defined as stressed syllables at the ends of lines (*clausulas*) that share a similar sound.
+However, the **spelling** of these rhyming syllables may differ significantly from their actual pronunciation due to:
+
+- The peculiarities of **Russian orthography** (spelling rules).
+
+- Various **phonetic processes** (e.g., assimilation, reduction, or historical sound changes).
+
+The words *"пригож"*, *"ложь"*, and *"найдёшь"* in the following example all end with the **same stressed sound** (/oʃ/), despite their differing spellings.
+This phonetic similarity creates the rhyme, even though their written forms vary.
+
+```
+«Есть ли ме́сто, где лю́дям я бу́ду приго́ж?
+Где не це́нят, как зо́лото, пё́струю ло́жь?» —
+Вновь стена́ет страда́лец. Ему́ я отве́чу:
+«Только в Ца́рстве Небе́сном тако́е найдё́шь».
+```
+
+
+Clausula may include non-stressed 1-syllable word after ictus:
+
+```
+девятидне́вный жо́р голи́мый
+с трудо́м но всё́ ж превозмогли́ мы
+```
+
 
 #### Single-Line Processing
 
@@ -177,15 +205,12 @@ The RPST accounts for these by detecting such words, analyzing both roots and ad
 
 How it works:
 
-1. **Stress Allocation**:
+1) The algorithm detects both roots in a compound word.
+2) Places a *secondary stress* on the first root.
+3) Places the *primary stress* on the second root.
 
-   - The algorithm detects both roots in a compound word.
-   - Places a *secondary stress* on the first root.
-   - Places the *primary stress* on the second root.
+**Example**: in the word **"гро̀зогро́м"** (from the words *"гроза́"* + *"гром"*):
 
-2. **Example**:
-
-   In the word **"гро̀зогро́м"** (from the words *"гроза́"* + *"гром"*):
    - The primary stress falls on the second root (`гро́м`).
    - The secondary stress shifts to the first syllable (`гро̀з`) in *"гроза́"* because the original stress in *"гроза́"* (on the ending `-а́`) is truncated in the compound form.
 
@@ -208,6 +233,15 @@ on the word "о̀гнетво́рчество":
 И во Бла́го Небе́сной Зари́,
 Краски Све́та повсю́ду внедри́т!
 ```
+
+In another example, the word "грѝбое́дство" demonstrates a case where the second part of a compound word,
+that is, "-е́дство", cannot be an independent word:
+
+```
+Грѝбое́дство! И в на́шем ве́ке!
+Что́ тут ска́жешь о челове́ке…
+```
+
 
 #### Verb derivation
 
@@ -330,6 +364,18 @@ Rules for spelling, punctuation and text formatting are the same as for ***пи�
 и пы́шные же́нщины в бро́ском
 оле́г продолжа́ет иска́ть всё равно́
 в бро́дском
+```
+
+
+**ruba'i**
+
+Ruba'i is a quatrain written in anapest with rhyme scheme AABA:
+
+```
+В окруже́нье прислу́жниц, грана́тов и сли́в,
+Перепо́лненный ку́бок вина́ пригуби́в,
+Удивля́ется о́чень высо́кий нача́льник:
+«Неуже́ли наро́д наш ещё́ не счастли́в?»
 ```
 
 
