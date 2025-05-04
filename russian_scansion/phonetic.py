@@ -464,7 +464,7 @@ class Accents:
             head = word[:prefix_len]
             if head in self.derivation_data['compound2stress']:
                 tail = word[prefix_len:]
-                if tail in self.word_accents_dict or tail in self.ambiguous_accents or tail in self.ambiguous_accents2:
+                if tail in self.word_accents_dict or tail in self.ambiguous_accents or tail in self.ambiguous_accents2 or tail in self.derivation_data['compound_tails']:
                     stressed_head = self.derivation_data['compound2stress'][head]
                     secondary_stress_pos = 0
                     vowel_count = 0
