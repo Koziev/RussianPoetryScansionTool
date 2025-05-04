@@ -826,7 +826,12 @@ class RhymingTail(object):
         self.unstressed_postfix_words = unstressed_postfix_words
         self.unstressed_tail = ''.join(w.poetry_word.form for w in unstressed_postfix_words)
         self.prefix = '' if unstressed_prefix is None else unstressed_prefix
-        self.ok = stressed_word is not None and stressed_word.new_stress_pos != -1
+        self.ok = False
+        if stressed_word is not None and stressed_word.new_stress_pos != -1:
+            self.ok = True
+            if len(stressed_word.stress_signature) - stressed_word.new_stress_pos >= 3:
+                # Если справа от последнего икта (в клаузуле) более 2х безударных слогов - это что-то совсем кривое.
+                self.ok = False
 
     def is_ok(self):
         return self.ok
@@ -1484,7 +1489,10 @@ class PoetryAlignment(object):
 
     @staticmethod
     def build_no_rhyming_result(poetry_lines):
-        a = PoetryAlignment(poetry_lines, 0.0, None, None, metre_mappings=None, rhyme_graph=None)
+        a = PoetryAlignment(poetry_lines, 0.0, None,
+                            '-'*len(poetry_lines),
+                            metre_mappings=[MetreMappingResult.build_from_nonpoetry(line) for line in poetry_lines],
+                            rhyme_graph=[None]*len(poetry_lines))
         a.error_text = 'Отсутствует рифмовка последних слов'
         return a
 
@@ -3320,12 +3328,13 @@ class PoetryStressAligner(object):
             score, stressed_lines, line_mappings, meter, rhyme_scheme, rhyme_graph = self.align_weak0(lines)
 
             do_prefer_weak = False
-            if rhyme_scheme.count('-') < best_rhyme_scheme.count('-'):
-                # Accept this alignment because it detects more rhymes
-                do_prefer_weak = True
-            else:
-                if self.detect_stress_lacunas([v[0] for v in best_variant]):
+            if score > 0.0:
+                if 'A' in rhyme_scheme and (rhyme_scheme.count('-') < best_rhyme_scheme.count('-') or best_rhyme_scheme is None):
+                    # Accept this alignment because it detects more rhymes
                     do_prefer_weak = True
+                else:
+                    if best_variant is None or self.detect_stress_lacunas([v[0] for v in best_variant]):
+                        do_prefer_weak = True
 
             if do_prefer_weak:
                 return PoetryAlignment(stressed_lines,
@@ -3513,7 +3522,8 @@ class PoetryStressAligner(object):
                             metre_mapping.enforce_intrinsic_word_accentuation()
                             stressed_words = [m.word for m in metre_mapping.word_mappings]
                             new_stress_line = LineStressVariant(pline, stressed_words, self)
-                            best_mapping = metre_mapping
+                            if best_mapping is None or new_stress_line.get_rhyming_tail().is_ok():
+                                best_mapping = metre_mapping
 
                     new_stress_lines.append((best_mapping, new_stress_line))
 
@@ -3530,9 +3540,19 @@ class PoetryStressAligner(object):
                     best_rhyme_graph = rhyme_graph
 
         # Возвращаем найденный вариант разметки и его оценку
-        best_lines = [v[1] for v in best_variant]
-        metre_mappings = [v[0] for v in best_variant]
+        if best_variant:
+            best_lines = [v[1] for v in best_variant]
+            metre_mappings = [v[0] for v in best_variant]
+        else:
+            best_score = 0.0
+            best_lines = [pline.get_first_stress_variants(self) for pline in plines]
+            metre_mappings = [MetreMappingResult.build_from_nonpoetry(line) for line in best_lines]
+            best_metre = None
+            best_rhyme_scheme = '-' * len(plines)
+            best_rhyme_graph = [None] * len(plines)
+
         return best_score, best_lines, metre_mappings, best_metre, best_rhyme_scheme, best_rhyme_graph
+
 
     def recalc_line_tscores(self, plinev, rhyme_graph):
         line_tscores = [pline[0].get_score() for pline in plinev]
@@ -3673,7 +3693,8 @@ class PoetryStressAligner(object):
                             max_score = metre_mapping.score
                             stressed_words = [m.word for m in metre_mapping.word_mappings]
                             new_stress_line = LineStressVariant(pline, stressed_words, self)
-                            best_mapping = metre_mapping
+                            if best_mapping is None or new_stress_line.get_rhyming_tail().is_ok():
+                                best_mapping = metre_mapping
 
                     new_stress_lines.append((best_mapping, new_stress_line))
 
@@ -3700,12 +3721,15 @@ class PoetryStressAligner(object):
             score, stressed_lines, line_mappings, meter, rhyme_scheme, rhyme_graph = self.align_weak0(lines)
 
             do_prefer_weak = False
-            if rhyme_scheme.count('-') < best_rhyme_scheme.count('-'):
-                # Accept this alignment because it detects more rhymes
-                do_prefer_weak = True
-            else:
-                if self.detect_stress_lacunas([v[0] for v in best_variant]):
+            if score > 0.0:
+                if best_score == 0.0:
                     do_prefer_weak = True
+                elif best_rhyme_scheme is None or rhyme_scheme.count('-') < best_rhyme_scheme.count('-'):
+                    # Accept this alignment because it detects more rhymes
+                    do_prefer_weak = True
+                else:
+                    if self.detect_stress_lacunas([v[0] for v in best_variant]):
+                        do_prefer_weak = True
 
             if do_prefer_weak:
                 return PoetryAlignment(stressed_lines,
