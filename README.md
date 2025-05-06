@@ -237,6 +237,21 @@ Clausula may include non-stressed 1-syllable word after ictus:
 с трудо́м но всё́ ж превозмогли́ мы
 ```
 
+For optimization purposes, the current version of the end rhyme detection algorithm only looks
+at the next **2** lines. So in the following example, the rhyme scheme will be labeled as `AABCC-`
+rather than `AABCCB`:
+
+```
+Мне ла́сковое мо́ре - по коле́но
+Уже́ давно́. Ино́е де́ло - се́но
+Упа́сть в глуби́ны, е́сли ты́ уста́л
+О, све́жий за́пах перега́ра тра́в
+О, мѐлкопы́льный стебле́вый соста́в
+Затя́нет в ра́й! В косми́ческий астра́л!
+```
+
+
+
 
 #### Single-Line Processing
 
