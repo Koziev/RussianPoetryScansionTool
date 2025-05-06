@@ -5,7 +5,7 @@ This repo is an experimental fork of the publically available [Russian Poetry Sc
 The **Russian Poetry Scansion Tool** (RPST) is a Python library designed for the analysis, evaluation, and labeling of Russian-language [poetry](#usage), songs, and [rap texts](#usage-for-rap-analysis). It provides tools for the following tasks:
 
 - **Stress Placement**: Automatically places stresses in Russian poems and songs, adjusting for poetic meter.
-- **Meter**: Detects the poetic meter of a given poem if possible.
+- **Meter**: Detects the poetic meter of a given poem if possible. If none of regular meters did not match, the algorithm tries to math *dolnik* that is pattern with variable number of non-stressed syllables between ictuses.
 - **Technicality Scoring**: Evaluates prosodic defects and calculates a *technicality* score, ranging from 0 (complete non-compliance with poetic constraints) to 1 (perfect compliance with a poetic meter).
 - **Rhyme Detection**: Identifies rhymes, including slant (fuzzy) rhymes.
 
@@ -174,6 +174,16 @@ An example of perfect score (1.0):
 ```
 
 This is a poem written in amphibrach meter with ABAB rhyme by Georgy Ivanov.
+
+An example of a quatrain written in *dolnik* with perfect score (1.0):
+
+```
+Чтоб случи́лось в любо́вь уплы́ть
+Навсегда́, а не вско́льзь и вкра́тце
+Мы всем се́рдцем жела́ем бы́ть
+И совсе́м не хоти́м каза́ться
+```
+
 
 An example of poor poem (~0.00095):
 
