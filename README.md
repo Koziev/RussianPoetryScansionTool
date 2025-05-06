@@ -2,7 +2,7 @@
 
 This repo is an experimental fork of the publically available [Russian Poetry Scansion Tool](https://github.com/RussianNLP/RussianPoetryScansionTool). I will use this fork as a playground for testing experimental features and new approaches before merging them into the official project repository.
 
-The **Russian Poetry Scansion Tool** (RPST) is a Python library designed for the analysis, evaluation, and labeling of Russian-language poetry. It provides tools for the following tasks:
+The **Russian Poetry Scansion Tool** (RPST) is a Python library designed for the analysis, evaluation, and labeling of Russian-language [poetry](#usage), songs, and [rap texts](#usage-for-rap-analysis). It provides tools for the following tasks:
 
 - **Stress Placement**: Automatically places stresses in Russian poems and songs, adjusting for poetic meter.
 - **Meter**: Detects the poetic meter of a given poem if possible.
