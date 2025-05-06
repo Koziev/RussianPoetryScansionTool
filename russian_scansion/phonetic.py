@@ -1755,9 +1755,14 @@ def rhymed2(accentuator, word1, stress1, ud_tags1, unstressed_prefix1, unstresse
 
 fuzzy_ending_pairs0 = [
     #(r'\^эсна', r'\^эстна'), # интересно - честно
-    (r'ж\^эе', r'ш\^эя'),  # xword1=свиж^эе xword2=ш^эя  word1=свежее word2=шея
+    (r'ж\^эе', r'ш\^эя'),  # word1=свежее word2=шея
     (r'\^очэм', r'\^очэнь'),  # впрочем - очень
     (r'\^этир', r'\^эчэр'),  # ветер - вечер
+    (r'\^аясь', r'\^аюсь'),  # word1=спотыкаясь word2=прощаюсь
+    (r'\^аласть', r'\^алась'),  # xword1=ж^аласть xword2=спуск^алась  word1=жалость word2=спускалась
+    (r'\^ощэ', r'\^ощать'),  # word1=проще word2=площадь
+    (r'\^аятьса', r'\^аетса'),  # xword1=каяться word2=меняется
+    (r'\^анчыка', r'\^анщыка'),  # word1=шалманчика word2=шарманщика
     (r'\^оскам', r'\^отскам'),  # word1=броском word2=бродском
     (r'ш\^ая', r'ш\^аю'),  # word1=большая word2=разрешаю
     (r'\^учый', r'\^учшый'),  # word1=колючий word2=лучший
@@ -2589,7 +2594,9 @@ def rhymed_fuzzy(accentuator, word1, stress1, ud_tags1, word2, stress2, ud_tags2
     return rhymed_fuzzy2(accentuator, word1, stress1, ud_tags1, '', None, word2, stress2, ud_tags2, '', None)
 
 
-def rhymed_fuzzy2(accentuator, word1, stress1, ud_tags1, unstressed_prefix1, unstressed_tail1, word2, stress2, ud_tags2, unstressed_prefix2, unstressed_tail2):
+def rhymed_fuzzy2(accentuator,
+                  word1, stress1, ud_tags1, unstressed_prefix1, unstressed_tail1,
+                  word2, stress2, ud_tags2, unstressed_prefix2, unstressed_tail2):
     if stress1 is None:
         stress1 = accentuator.get_accent(word1, ud_tags1)
 
@@ -2721,6 +2728,35 @@ def rhymed_fuzzy2_base(accentuator, word1, stress1, xword1, clausula1, word2, st
                         return True
 
     return False
+
+
+def rhymed_rap(accentuator,
+               word1, stress1, ud_tags1, unstressed_prefix1, unstressed_tail1,
+               word2, stress2, ud_tags2, unstressed_prefix2, unstressed_tail2):
+    if stress1 is None:
+        stress1 = accentuator.get_accent(word1, ud_tags1)
+
+    if stress2 is None:
+        stress2 = accentuator.get_accent(word2, ud_tags2)
+
+    word1 = accentuator.yoficate2(accentuator.sanitize_word(word1), ud_tags1)
+    word2 = accentuator.yoficate2(accentuator.sanitize_word(word2), ud_tags2)
+
+    k = (word1, stress1, unstressed_prefix1, unstressed_tail1, word2, stress2, unstressed_prefix2, unstressed_tail2,)
+    res1 = accentuator.fuzzy_rhyming_cache.get(k, None)
+    if res1 is not None:
+        return res1
+
+    xword1, clausula1 = render_xword(accentuator, word1, stress1, ud_tags1, unstressed_prefix1, unstressed_tail1)
+    xword2, clausula2 = render_xword(accentuator, word2, stress2, ud_tags2, unstressed_prefix2, unstressed_tail2)
+    #res1 = accentuator.fuzzy_rhyming_cache.get((xword1, xword2), None)
+    #if res1 is not None:
+    #    return res1
+
+    res = rhymed_fuzzy2_base(accentuator, word1, stress1, xword1, clausula1, word2, stress2, xword2, clausula2)
+    #accentuator.fuzzy_rhyming_cache[(xword1, xword2)] = res
+    accentuator.fuzzy_rhyming_cache[k] = res
+    return res
 
 
 
