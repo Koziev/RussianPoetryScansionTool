@@ -45,9 +45,9 @@ import numpy as np
 import pickle
 from typing import List, Set, Dict, Tuple, Optional
 
-from poetry.phonetic import Accents, rhymed2, rhymed_fuzzy2, render_xword, WordAccentuation
-from generative_poetry.metre_classifier import get_syllables
-from generative_poetry.whitespace_normalization import normalize_whitespaces
+from .phonetic import Accents, rhymed2, rhymed_fuzzy2, render_xword, WordAccentuation
+from .metre_classifier import get_syllables
+from .whitespace_normalization import normalize_whitespaces
 
 
 # Коэффициенты для штрафов за разные отступления от идеальной метрики.
@@ -3739,7 +3739,6 @@ class PoetryStressAligner(object):
                                        rhyme_graph=rhyme_graph,
                                        metre_mappings=line_mappings)
 
-
         if best_variant is None:
             # В этом случае вернем результат с нулевым скором и особым текстом, чтобы
             # можно было вывести в лог строки с каким-то дефолтными
@@ -3817,6 +3816,22 @@ class PoetryStressAligner(object):
             # для последней строки просто добавляем отсутствие рифмовки вперед, так как впереди ничего нет.
             i_rhymed_with_j.append(None)
             best_rhyme_graph = i_rhymed_with_j
+
+        # Отрисуем схему рифмовки по графу.
+        edges = [(0 if edge is None else edge) for edge in best_rhyme_graph]
+        line_letters = [''] * len(edges)
+        current_char = ord('A')
+        for i, edge in enumerate(edges):
+            if line_letters[i] == '':
+                if edge == 0:
+                    line_letters[i] = '-'
+                else:
+                    line_letters[i] = chr(current_char)
+                    current_char += 1
+
+            if edge != 0:
+                line_letters[i+edge] = line_letters[i]
+        best_rhyme_scheme = ''.join(line_letters)
 
         return PoetryAlignment(best_lines, best_score, best_metre,
                                rhyme_scheme=best_rhyme_scheme,
@@ -4545,7 +4560,7 @@ class PoetryStressAligner(object):
         for block_text in rap_text.split('\n\n'):
             block_header = None
             block_lines = None
-            lines = block_text.split('\n')
+            lines = block_text.strip().split('\n')
             if lines:
                 block_header = None
                 block_lines = list(lines)
