@@ -88,6 +88,70 @@ Secondary stresses, if detected and allowed to be output, are marked using the `
 Ей по́д ноги смущё́нно расстила́ет,
 ```
 
+
+### Usage for rap analysis
+
+Rap text can be analyzed using `align_rap' method.
+NB: it requires the text as a single string, without splitting it to lines.
+
+```python
+poem = """Полная претензий бадья, жизнь как дикий мадьяр
+Не смогла без кипы предъяв. И как Киплинг Редьярд
+Подбирал метафоры, ведь я этот жар не терял
+Но людские души порой слишком хрупкий материал
+Слёзы - матерям, отцы же матерят суть бытия
+Просто быть и я готов был раньше для распития
+Без пяти и яд лил бы в стакан, но нет развития
+Среди ям. И пик моих деяний - труска одеял
+Среди одеяний тех мажорных пожухлым и жёлтым
+Будто павший лист, стал русский рэп, и никто не зажжёт там
+Время укусит за жопу, свиньи дерутся за жёлудь
+Бог бережёт бережённых, всяк себя мнит дирижером
+Стоны, как в палате обожжённых, с уголков страны
+Рвутся из оков сыны на вой отчизны позывных
+Поздно ныть, крепитесь, пацаны, вычислив подсадных
+Когда, если не сейчас, и кто, если не мы?"""
+
+a = tool.align_rap(poem)
+print('Score: {}\n'.format(a.get_total_score()))
+print(a.get_stressed_lines())
+
+print('\nRhyme graph:')
+    for i, block in enumerate(a.blocks, start=1):
+        print('block #{}:  {}'.format(i, ' '.join(map(str, block.rhyming_graf))))
+```
+
+The result will be as follows:
+
+```
+Score: 0.9999998750000157
+
+По́лная прете́нзий бадья́, жи́знь как ди́кий мадья́р
+Не смогла́ без ки́пы предъя́в. И как Ки́плинг Ре́дьярд
+Подбира́л мета́форы, ведь я́ э́тот жа́р не теря́л
+Но людски́е ду́ши поро́й сли́шком хру́пкий материа́л
+Слё́зы - матеря́м, отцы́ же матеря́т су́ть бытия́
+Просто бы́ть и я́ гото́в был ра́ньше для распи́тия
+Без пяти́ и я́д ли́л бы в стака́н, но нет разви́тия
+Среди я́м. И пи́к моих дея́ний - тру́ска одея́л
+Среди одея́ний те́х мажо́рных пожу́хлым и жё́лтым
+Будто па́вший ли́ст, ста́л ру́сский рэ́п, и никто́ не зажжё́т та́м
+Вре́мя уку́сит за жо́пу, сви́ньи деру́тся за жё́лудь
+Бо́г бережё́т бережё́нных, вся́к себя́ мни́т дириже́ром
+Сто́ны, как в пала́те обожжё́нных, с уголко́в страны́
+Рву́тся из око́в сыны́ на во́й отчи́зны позывны́х
+По́здно ны́ть, крепи́тесь, пацаны́, вы́числив подсадны́х
+Когда, если не сейча́с, и кто́, если не мы́?
+
+Rhyme graph:
+block #1:  1 0 1 0 1 1 0 0 2 0 1 0 1 1 0 0
+```
+
+A `rhyme graph` is a list of integers that shows how strings are related via end rhymes.
+Each number in it represents a forward offset to a rhyming string.
+If the number is 0, the string does not rhyme with anything (or rather, the rhyme detectors did not find it).
+
+
 ### Technicality Scoring and its interpretation
 
 The analysis outputs a **technicality score** (0 to 1) measuring how strictly the text follows Russian versification rules:

@@ -45,9 +45,9 @@ import numpy as np
 import pickle
 from typing import List, Set, Dict, Tuple, Optional
 
-from .phonetic import Accents, rhymed2, rhymed_fuzzy2, render_xword, WordAccentuation
-from .metre_classifier import get_syllables
-from .whitespace_normalization import normalize_whitespaces
+from poetry.phonetic import Accents, rhymed2, rhymed_fuzzy2, render_xword, WordAccentuation
+from generative_poetry.metre_classifier import get_syllables
+from generative_poetry.whitespace_normalization import normalize_whitespaces
 
 
 # Коэффициенты для штрафов за разные отступления от идеальной метрики.
@@ -4464,6 +4464,73 @@ class PoetryStressAligner(object):
 
         return markup
 
+    def extract_clausula_for_rap(self, rhyme_tail: str) -> str:
+        cx = []
+        stress_hit = False
+        num_consonants = 0
+        for c in rhyme_tail[::-1]:
+            if c == '\u0301':
+                stress_hit = True
+            else:
+                cx.append(c)
+
+                if c in 'бвгджзклмнпрстфхцчшщ':
+                    num_consonants += 1
+
+                if num_consonants > 0 and stress_hit:
+                    break
+
+        clausula = ''.join(cx[::-1])
+        return clausula
+
+    def check_rap_rhyming(self, tail1, tail2) -> bool:
+        r = self.check_rhyming(tail1, tail2)
+        if r:
+            return True
+
+        s1 = tail1.get_text()
+        s2 = tail2.get_text()
+        clausula1 = self.extract_clausula_for_rap(s1)
+        clausula2 = self.extract_clausula_for_rap(s2)
+        if len(clausula1) < len(clausula2):
+            if clausula2.endswith(clausula1):
+                # бытиЯ - распИтия
+                return True
+        else:
+            if clausula1.endswith(clausula2):
+                # распИтия - бытиЯ
+                return True
+
+        poetry_word1 = tail1.stressed_word
+        poetry_word2 = tail2.stressed_word
+        tags1 = [poetry_word1.poetry_word.upos] + poetry_word1.poetry_word.tags
+        tags2 = [poetry_word2.poetry_word.upos] + poetry_word2.poetry_word.tags
+        word1 = self.accentuator.yoficate2(self.accentuator.sanitize_word(poetry_word1.poetry_word.form), tags1)
+        word2 = self.accentuator.yoficate2(self.accentuator.sanitize_word(poetry_word2.poetry_word.form), tags2)
+
+        xword1, clausula1 = render_xword(self.accentuator, word1, poetry_word1.new_stress_pos, tags1, tail1.prefix, tail1.unstressed_tail)
+        xword2, clausula2 = render_xword(self.accentuator, word2, poetry_word2.new_stress_pos, tags2, tail2.prefix, tail2.unstressed_tail)
+
+        if len(clausula1) > len(clausula2):
+            clausula1, clausula2 = clausula2, clausula1
+
+        if clausula2.endswith(clausula1):
+            # бытиЯ - распИтия
+            return True
+
+        # мадьяр - Редьярд
+        r1 = re.search(clausula1.replace('^', '')+'[бвгджзйклмнпрстфхцчшщ]+$', clausula2)
+        if r1 is not None:
+            return True
+
+        # причеса́ть - проса́к
+        m1 = re.search(r'([бвгджзйклмнпрстфхцчшщ]\^.)', xword1)
+        m2 = re.search(r'([бвгджзйклмнпрстфхцчшщ]\^.)', xword2)
+        if m1 and m2 and m1.group(1) == m2.group(1):
+            return True
+
+        return False
+
     def align_rap(self, rap_text: str) -> SongAlignment:
         #raise NotImplementedError()
         #return self.align_song(rap_text.split('\n'), genre='рэп')
@@ -4532,8 +4599,10 @@ class PoetryStressAligner(object):
                                         # первое слово становится ударным, второе и третье - безударные
                                         g = TokenGroup()
 
-                                        accentuation = self.accentuator.get_accents(word, ud_tags=ud_token.tags + [ud_token.upos])
-                                        pword1 = PoetryWord(ud_token.lemma, ud_token.form, ud_token.upos, ud_token.tags, accentuation)
+                                        accentuations = self.accentuator.get_accents(word, ud_tags=ud_token.tags + [ud_token.upos])
+                                        accentuations2 = [accentuation for accentuation in accentuations if
+                                                          accentuation.stress_pos == colloc.stress_pos]
+                                        pword1 = PoetryWord(ud_token.lemma, ud_token.form, ud_token.upos, ud_token.tags, accentuations2)
                                         g.add(pword1)
 
                                         pword2 = PoetryWord(token2.lemma, token2.form, token2.upos, token2.tags, [WordAccentuation.build_nostress()])
@@ -4550,8 +4619,10 @@ class PoetryStressAligner(object):
                                         pword1 = PoetryWord(ud_token.lemma, ud_token.form, ud_token.upos, ud_token.tags, [WordAccentuation.build_nostress()])
                                         g.add(pword1)
 
-                                        accentuation = self.accentuator.get_accents(word2, ud_tags=token2.tags + [token2.upos])
-                                        pword2 = PoetryWord(token2.lemma, token2.form, token2.upos, token2.tags, accentuation)
+                                        accentuations = self.accentuator.get_accents(word2, ud_tags=token2.tags + [token2.upos])
+                                        accentuations2 = [accentuation for accentuation in accentuations if
+                                                          accentuation.stress_pos == colloc.stress_pos]
+                                        pword2 = PoetryWord(token2.lemma, token2.form, token2.upos, token2.tags, accentuations2)
                                         g.add(pword2)
 
                                         pword3 = PoetryWord(token3.lemma, token3.form, token3.upos, token3.tags, [WordAccentuation.build_nostress()])
@@ -4568,8 +4639,10 @@ class PoetryStressAligner(object):
                                         pword2 = PoetryWord(token2.lemma, token2.form, token2.upos, token2.tags, [WordAccentuation.build_nostress()])
                                         g.add(pword2)
 
-                                        accentuation = self.accentuator.get_accents(word3, ud_tags=token3.tags + [token3.upos])
-                                        pword3 = PoetryWord(token3.lemma, token3.form, token3.upos, token3.tags, accentuation)
+                                        accentuations = self.accentuator.get_accents(word3, ud_tags=token3.tags + [token3.upos])
+                                        accentuations2 = [accentuation for accentuation in accentuations if
+                                                          accentuation.stress_pos == colloc.stress_pos]
+                                        pword3 = PoetryWord(token3.lemma, token3.form, token3.upos, token3.tags, accentuations2)
                                         g.add(pword3)
 
                                         item.add(g)
@@ -4589,8 +4662,9 @@ class PoetryStressAligner(object):
                                         # первое слово становится ударным, второе - безударное
                                         g = TokenGroup()
 
-                                        accentuation = self.accentuator.get_accents(word, ud_tags=ud_token.tags + [ud_token.upos])
-                                        pword1 = PoetryWord(ud_token.lemma, ud_token.form, ud_token.upos, ud_token.tags, accentuation)
+                                        accentuations = self.accentuator.get_accents(word, ud_tags=ud_token.tags + [ud_token.upos])
+                                        accentuations2 = [accentuation for accentuation in accentuations if accentuation.stress_pos == colloc.stress_pos]
+                                        pword1 = PoetryWord(ud_token.lemma, ud_token.form, ud_token.upos, ud_token.tags, accentuations2)
                                         g.add(pword1)
 
                                         pword2 = PoetryWord(token2.lemma, token2.form, token2.upos, token2.tags, [WordAccentuation.build_nostress()])
@@ -4604,13 +4678,14 @@ class PoetryStressAligner(object):
                                         pword1 = PoetryWord(ud_token.lemma, ud_token.form, ud_token.upos, ud_token.tags, [WordAccentuation.build_nostress()])
                                         g.add(pword1)
 
-                                        accentuation = self.accentuator.get_accents(word2, ud_tags=token2.tags + [token2.upos])
-                                        pword2 = PoetryWord(token2.lemma, token2.form, token2.upos, token2.tags, accentuation)
+                                        accentuations = self.accentuator.get_accents(word2, ud_tags=token2.tags + [token2.upos])
+                                        accentuations2 = [accentuation for accentuation in accentuations if accentuation.stress_pos == colloc.stress_pos]
+                                        pword2 = PoetryWord(token2.lemma, token2.form, token2.upos, token2.tags, accentuations2)
                                         g.add(pword2)
 
                                         item.add(g)
                                     else:
-                                        msg = 'ERROR@3257 Pair of word without stress in "collocations": {}'.format(colloc)
+                                        msg = 'ERROR@4676 Pair of word without stress in "collocations": {}'.format(colloc)
                                         raise RuntimeError(msg)
 
                                 res_items.append(item)
@@ -4686,92 +4761,122 @@ class PoetryStressAligner(object):
                 # Все строки в блоке размечены, результаты разметки собраны в stressed_lines
                 line_variants = [line.get_rhyming_variants(self) for line in stressed_lines]
 
-                # Теперь надо выбрать те варианты ударения для каждой строки, чтобы максимизировать общую рифмовку.
                 rhyming_graf = []
-                iline = 0
-                while iline < len(line_variants):
-                    # Попробуем подобрать вариант сразу для 4х строк полным перебором вариантов.
-                    if len(line_variants) - iline >= 4:
-                        lines4 = line_variants[iline: iline+4]
+                stressed_lines = None
 
-                        best_variants4 = None
-                        best_rhyming = None
-                        best_num_rhymed = 0
+                if np.prod(list(map(len, line_variants))) < 100:
+                    # Полный перебор вариантов
+                    best_variants = None
+                    best_num_rhymed = -1
+                    best_rhyme_graf = None
 
-                        for variant4 in itertools.product(*lines4):
-                            r12 = self.check_rhyming(variant4[0].rhyming_tail, variant4[1].rhyming_tail)
-                            r13 = self.check_rhyming(variant4[0].rhyming_tail, variant4[2].rhyming_tail)
-                            r14 = self.check_rhyming(variant4[0].rhyming_tail, variant4[3].rhyming_tail)
+                    for line_variants1 in itertools.product(*line_variants):
+                        rhyming_tails = [line.rhyming_tail for line in line_variants1]
 
-                            r23 = self.check_rhyming(variant4[1].rhyming_tail, variant4[2].rhyming_tail)
-                            r24 = self.check_rhyming(variant4[1].rhyming_tail, variant4[3].rhyming_tail)
+                        graf = [0] * len(rhyming_tails)
+                        for i1, rhyming_tail1 in enumerate(rhyming_tails[:-1]):
+                            for delta in [1,2,3]:
+                                i2 = i1 + delta
+                                if i2 < len(rhyming_tails):
+                                    rhyming_tail2 = rhyming_tails[i2]
+                                    r = self.check_rap_rhyming(rhyming_tail1, rhyming_tail2)
+                                    if r:
+                                        graf[i1] = delta
+                                        break
 
-                            r34 = self.check_rhyming(variant4[2].rhyming_tail, variant4[3].rhyming_tail)
+                        num_rhymed = sum((edge!=0) for edge in graf)
+                        if num_rhymed > best_num_rhymed:
+                            best_num_rhymed = num_rhymed
+                            best_rhyme_graf = graf
+                            best_variants = list(line_variants1)
 
-                            rhyming = tuple()
-
-                            if r12 and r34 and not r23:
-                                # AABB
-                                rhyming = (1, 0, 1, 0)
-                            elif r13 and r24 and not r12 and not r34:
-                                # ABAB
-                                rhyming = (2, 2, 0, 0)
-                            elif r14 and r23 and not r12:
-                                # ABBA
-                                rhyming = (3, 1, 0, 0)
-                            elif r12 and r23 and r34:
-                                # AAAA
-                                rhyming = (1, 1, 1, 0)
-
-                            if rhyming:
-                                num_rhymed = sum(z!=0 for z in rhyming)
-                                if num_rhymed > best_num_rhymed:
-                                    best_num_rhymed = num_rhymed
-                                    best_variants4 = list(variant4)
-                                    best_rhyming = rhyming
-
-                        if best_variants4:
-                            line_variants[iline: iline + 4] = [[variant] for variant in best_variants4]
-                            rhyming_graf.extend(best_rhyming)
-                            iline += 4
-                            continue
-
-                    # Упрощенный алгоритм выбора вариантов для оставшихся строк.
+                    rhyming_graf = best_rhyme_graf
+                    stressed_lines = best_variants
+                else:
+                    # Теперь надо выбрать те варианты ударения для каждой строки, чтобы максимизировать общую рифмовку.
+                    iline = 0
                     while iline < len(line_variants):
-                        if iline == len(line_variants)-1:
-                            rhyming_graf.append(0)
-                            iline += 1
-                        else:
-                            best_variant_1 = None
-                            best_variant_2 = None
-                            best_edge = 0
+                        # Попробуем подобрать вариант сразу для 4х строк полным перебором вариантов.
+                        if len(line_variants) - iline >= 4:
+                            lines4 = line_variants[iline: iline+4]
 
-                            for edge in [1,2,3]:
-                                iline2 = iline + edge
-                                if iline2 < len(line_variants):
-                                    for variant_1 in line_variants[iline]:
-                                        for variant_2 in line_variants[iline2]:
-                                            rij = self.check_rhyming(variant_1.rhyming_tail, variant_2.rhyming_tail)
-                                            if rij:
-                                                best_edge = edge
-                                                best_variant_1 = variant_1
-                                                best_variant_2 = variant_2
-                                                break
+                            best_variants4 = None
+                            best_rhyming = None
+                            best_num_rhymed = 0
 
-                            if best_edge:
-                                rhyming_graf.append(best_edge)
-                                line_variants[iline] = [best_variant_1]
-                                line_variants[iline + best_edge] = [best_variant_2]
-                                iline += 1  #best_edge
-                            else:
+                            for variant4 in itertools.product(*lines4):
+                                r12 = self.check_rap_rhyming(variant4[0].rhyming_tail, variant4[1].rhyming_tail)
+                                r13 = self.check_rap_rhyming(variant4[0].rhyming_tail, variant4[2].rhyming_tail)
+                                r14 = self.check_rap_rhyming(variant4[0].rhyming_tail, variant4[3].rhyming_tail)
+
+                                r23 = self.check_rap_rhyming(variant4[1].rhyming_tail, variant4[2].rhyming_tail)
+                                r24 = self.check_rap_rhyming(variant4[1].rhyming_tail, variant4[3].rhyming_tail)
+
+                                r34 = self.check_rap_rhyming(variant4[2].rhyming_tail, variant4[3].rhyming_tail)
+
+                                rhyming = tuple()
+
+                                if r12 and r34 and not r23:
+                                    # AABB
+                                    rhyming = (1, 0, 1, 0)
+                                elif r13 and r24 and not r12 and not r34:
+                                    # ABAB
+                                    rhyming = (2, 2, 0, 0)
+                                elif r14 and r23 and not r12:
+                                    # ABBA
+                                    rhyming = (3, 1, 0, 0)
+                                elif r12 and r23 and r34:
+                                    # AAAA
+                                    rhyming = (1, 1, 1, 0)
+
+                                if rhyming:
+                                    num_rhymed = sum(z!=0 for z in rhyming)
+                                    if num_rhymed > best_num_rhymed:
+                                        best_num_rhymed = num_rhymed
+                                        best_variants4 = list(variant4)
+                                        best_rhyming = rhyming
+
+                            if best_variants4:
+                                line_variants[iline: iline + 4] = [[variant] for variant in best_variants4]
+                                rhyming_graf.extend(best_rhyming)
+                                iline += 4
+                                continue
+
+                        # Упрощенный алгоритм выбора вариантов для оставшихся строк.
+                        while iline < len(line_variants):
+                            if iline == len(line_variants)-1:
                                 rhyming_graf.append(0)
                                 iline += 1
+                            else:
+                                best_variant_1 = None
+                                best_variant_2 = None
+                                best_edge = 0
 
-                # Оставляем первый вариант ударения для тех строк, по которым выбор не получилось сделать через рифмовку.
-                stressed_lines = [vx[0] for vx in line_variants]
+                                for edge in [1,2,3]:
+                                    iline2 = iline + edge
+                                    if iline2 < len(line_variants):
+                                        for variant_1 in line_variants[iline]:
+                                            for variant_2 in line_variants[iline2]:
+                                                rij = self.check_rhyming(variant_1.rhyming_tail, variant_2.rhyming_tail)
+                                                if rij:
+                                                    best_edge = edge
+                                                    best_variant_1 = variant_1
+                                                    best_variant_2 = variant_2
+                                                    break
+
+                                if best_edge:
+                                    rhyming_graf.append(best_edge)
+                                    line_variants[iline] = [best_variant_1]
+                                    line_variants[iline + best_edge] = [best_variant_2]
+                                    iline += 1  #best_edge
+                                else:
+                                    rhyming_graf.append(0)
+                                    iline += 1
+
+                    # Оставляем первый вариант ударения для тех строк, по которым выбор не получилось сделать через рифмовку.
+                    stressed_lines = [vx[0] for vx in line_variants]
 
                 score = sum(g!=0 for g in rhyming_graf) / (len(line_variants) * 0.5 + 1e-6)
-
                 alignment = RapBlockAlignment(block_header, block_lines, stressed_lines, rhyming_graf, score)
                 aligned_blocks.append(alignment)
 
@@ -4908,7 +5013,7 @@ class RapLineVariant(object):
         return '  '.join(map(str, self.stressed_words))
 
     def get_stressed_line(self) -> str:
-        return ' '.join(map(str, self.stressed_words))
+        return normalize_whitespaces(' '.join(word.get_stressed_form(False) for word in self.stressed_words))
 
     def init_rhyming_tail(self):
         stressed_word = None
