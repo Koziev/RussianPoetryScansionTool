@@ -2345,6 +2345,12 @@ class PoetryStressAligner(object):
         if nlines == 4:
             if rhyme_graph_str == '2 0 1 0':
                 rhyme_scheme = 'A-AA'
+            elif rhyme_graph_str == '0 1 1 0':
+                # Частичка тебя
+                # Что во мне обитает
+                # Уже умирает
+                # Чудес не бывает
+                rhyme_scheme = '-AAA'
             else:
                 r01 = rx[0, 1]
                 r02 = rx[0, 2]
@@ -2757,6 +2763,13 @@ class PoetryStressAligner(object):
                                     [1,0,0,1,0,1],
                                     [1,0,0,1,0,1],
                                     [1,0,0,1,0,1,0]])
+
+            # Гаснут горные пики.
+            # Долы млеют во мгле.
+            # Стихли щебет и крики,
+            # Дремлет птенчик в дупле;
+            dolnik_patterns.append([[1,0,1,0,0,1,0],
+                                    [1,0,1,0,0,1]])
 
         if min_num_syllables == 7 and max_num_syllables == 7:
             # Божью Любовь Святую
