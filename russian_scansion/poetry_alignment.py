@@ -581,7 +581,7 @@ class PoetryWord(object):
                     n_vowels += 1
                     if n_vowels == accentuation1.stress_pos:
                         output.append('\u0301')
-                    elif accentuation1.secondary_accentuation and n_vowels in accentuation1.secondary_accentuation:
+                    elif accentuation1.secondary_accentuation and accentuation1.secondary_accentuation[n_vowels-1] == 2:
                         output.append('\u0300')
             return ''.join(output)
         else:
@@ -1132,8 +1132,12 @@ class LineStressVariant(object):
                     # вот у слона́ гора́здо ши́ре
                     # чем у                       <=======
                     if i > 0:
-                        if re.match(r'\w', self.stressed_words[i-1].poetry_word.form[-1], flags=re.I):
-                            unstressed_prefix = self.stressed_words[i-1].poetry_word.form[-1].lower()
+                        # Особый подход для случая, когда предыдущее слово заканчивается на согласный + ь:
+                        # ... обраща́юсь я́
+                        # ... рука́ Твоя́.
+                        m = re.search(r'([абвгдеёжзийклмнопрстуфхцчшщыэюя][ьъ]?)$', self.stressed_words[i-1].poetry_word.form, flags=re.I)
+                        if m is not None:
+                            unstressed_prefix = m.group(1).lower()  # self.stressed_words[i-1].poetry_word.form[-1].lower()
 
                 # все слова, кроме пунктуации, справа от данного сформируют безударный хвост клаузуллы
                 for i2 in range(i+1, len(self.stressed_words)):
@@ -1622,10 +1626,13 @@ class SongAlignmentBlock(object):
         self.title = title  # пусто, или "Припев:", или "Припев."
         self.alignment = alignment
 
-    def get_total_score(self):
+    def get_total_score(self) -> float:
         return self.alignment.score if self.alignment is not None else 0.0
 
-    def __repr__(self):
+    def get_rhyme_scheme(self) -> str:
+        return self.alignment.rhyme_scheme if self.alignment is not None else None
+
+    def __repr__(self) -> str:
         chunks = []
         if self.title:
             chunks.append(self.title)
@@ -1633,7 +1640,7 @@ class SongAlignmentBlock(object):
             chunks.append(self.alignment.get_stressed_lines())
         return '\n'.join(chunks)
 
-    def get_markup(self):
+    def get_markup(self) -> str:
         lines = []
         if self.title:
             lines.append(self.title)
@@ -1647,7 +1654,7 @@ class SongAlignmentBlock(object):
         else:
             return len(self.alignment.poetry_lines), self.alignment.get_num_rhymes()
 
-    def get_syllabized(self):
+    def get_syllabized(self) -> str:
         chunks = []
         if self.title:
             swords = []
@@ -1686,14 +1693,14 @@ class SongAlignment(object):
     def get_syllabized(self):
         return ' | \n | \n | '.join(block.get_syllabized() for block in self.blocks)
 
-    def get_rhyming_rate(self):
+    def get_rhyming_rate(self) -> float:
         num_lines = 0
         num_rhymes = 0
         for block in self.blocks:
             l, r = block.get_rhyming_ratio()
             num_lines += l
             num_rhymes += r
-        return num_rhymes / max((num_lines - 1 + 1e-6), 1e-6)
+        return num_rhymes / (num_lines//2 + 1e-6)
 
 
 class WordSegmentation(object):
@@ -4299,9 +4306,21 @@ class PoetryStressAligner(object):
                 block = block[1:]
 
             if block:
+                markup = None
                 try:
                     markup = self.align(block, check_rhymes=True)
                 except Exception as ex:
+                    pass
+
+                if markup is None or markup.score < 0.1:
+                    try:
+                        a0 = self.align_rap('\n'.join(block))
+                        rap_block = a0.blocks[0]
+                        markup = rap_block.convert_to_poetry_alignment()
+                    except Exception as ex:
+                        pass
+
+                if markup is None:
                     poetry_lines = [self.markup_song_line(line) for line in block]
                     markup = PoetryAlignment.build_no_rhyming_result(poetry_lines)
             else:
@@ -4559,10 +4578,7 @@ class PoetryStressAligner(object):
 
         return False
 
-    def align_rap(self, rap_text: str) -> SongAlignment:
-        #raise NotImplementedError()
-        #return self.align_song(rap_text.split('\n'), genre='рэп')
-
+    def align_rap(self, rap_text: str):
         no_accent_words = ['а', 'и', 'или', 'но', 'не', 'ни', 'же', 'ли', 'бы', 'ка', 'по', 'у', 'об', 'со', 'за']
         opt_words = ['лишь', 'вроде', 'если', 'чтобы', 'когда', 'просто', 'мимо', 'даже', 'всё', 'хотя', 'едва', 'нет',
                      'эти', 'эту', 'это', 'мои', 'твои', 'моих', 'твоих', 'моим', 'твоим', 'моей', 'твоей',
@@ -4937,9 +4953,17 @@ class RapBlockAlignment(object):
             if text_representation:
                 text_representation += '\n'
 
-            text_representation += '\n'.join(line.get_stressed_line() for line in self.stressed_lines)
+            text_representation += '\n'.join(line.get_stressed_line(False) for line in self.stressed_lines)
 
         return text_representation
+
+    def convert_to_poetry_alignment(self):
+        #plines = [line.stressed_words for line in self.stressed_lines]
+        a = PoetryAlignment(self.stressed_lines, 0.0, None,
+                            None,
+                            metre_mappings=[MetreMappingResult.build_from_nonpoetry(line) for line in self.stressed_lines],
+                            rhyme_graph=self.rhyming_graf)
+        return a
 
 
 class RapAlignment(object):
@@ -5040,8 +5064,8 @@ class RapLineVariant(object):
     def __repr__(self):
         return '  '.join(map(str, self.stressed_words))
 
-    def get_stressed_line(self) -> str:
-        return normalize_whitespaces(' '.join(word.get_stressed_form(False) for word in self.stressed_words))
+    def get_stressed_line(self, show_secondary_accentuation) -> str:
+        return normalize_whitespaces(' '.join(word.get_stressed_form(show_secondary_accentuation) for word in self.stressed_words))
 
     def init_rhyming_tail(self):
         stressed_word = None
@@ -5077,6 +5101,9 @@ class RapLineVariant(object):
 
     def count_syllables(self) -> int:
         return sum(word.count_syllables() for word in self.stressed_words)
+
+    def is_empty(self) -> bool:
+        return len(self.stressed_words) == 0
 
 
 class SongBlock(object):

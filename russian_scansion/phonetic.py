@@ -1758,6 +1758,75 @@ fuzzy_ending_pairs0 = [
     (r'ж\^эе', r'ш\^эя'),  # word1=свежее word2=шея
     (r'\^очэм', r'\^очэнь'),  # впрочем - очень
     (r'\^этир', r'\^эчэр'),  # ветер - вечер
+    (r'\^азднай', r'\^азнай'),  # word1=праздной word2=однообразной
+    (r'\^ёнай', r'\^оный'),  # word1=потаённой word2=уединённый
+    (r'\^аздный', r'\^азнай'),  # word1=праздный word2=алмазной
+    (r'\^эчный', r'\^эчна'),  # word1=млечный word2=вечно
+    (r'\^янай', r'\^аный'),  # word1=постоянной word2=незванный
+    (r'\^ольна', r'\^ольный'),  # word1=невольно word2=своевольный
+    (r'\^ужна', r'\^ужный'),  # word1=дружно word2=южный
+    (r'\^аднай', r'\^адна'),  # word1=безотрадной word2=жадно
+    (r'[:A:]\^ы', r'[:A:]\^ы'),  # word1=твои word2=змеи
+    (r'\^ая', r'\^аеф'),  # word1=такая word2=трамваев
+    (r'\^орту', r'\^ортай'),  # word1=чёрту word2=четвёртой
+    (r'\^янству', r'\^анства'),  # word1=постоянству word2=жеманства
+    (r'\^авна', r'\^авнай'),  # word1=самоуправно word2=державной
+    (r'\^олвны', r'\^олны'),  # word1=безмолвны word2=волны
+    (r'\^астный', r'\^ясный'),  # word1=страстный word2=неясный
+    (r'\^эзный', r'\^эзднай'),  # биспал^эзный xword2=б^эзднай  word1=бесполезный word2=бездной
+    (r'аз\^а', r'ас\^а'),  # word1=глаза word2=роса
+    (r'\^ые', r'\^ыя'),  # word1=какие word2=стихия
+    (r'\^эя', r'\^эе'),  # xword1=рд^эя xword2=жыв^эе  word1=рдея word2=живее
+    (r'\^янье', r'\^анья'),  # word1=обаянье word2=созданья
+    (r'\^асный', r'\^азный'),  #  word1=прекрасный word2=разнообразный
+    (r'\^аные', r'\^аныя'),  # word1=прощание word2=свидания
+    (r'\^эныя', r'\^эныем'),  # word1=уединения word2=наслаждением
+    (r'\^откай', r'\^отка'),  # word1=находкой word2=кротко
+    (r'б\^а', r'п\^а'),  # word1=мольба word2=толпа
+    (r'\^азным', r'\^асным'),  # word1=безобразным word2=прекрасным
+    (r'\^отна', r'\^отный'),  # word1=неохотно word2=почётный
+    (r'\^ушный', r'\^ушна'),  # word1=послушный word2=добродушно
+    (r'([:C:])\^ыя', r'[:1:]\^ые'),  # в^ыя xword2=ракав^ые  word1=выя word2=роковые
+    (r'\^ышэтса', r'\^ышытса'),  # word1=колышется word2=слышится
+    (r'\^эсыла', r'\^эсила'),  # word1=завесила word2=весело
+    (r'\^астью', r'\^асты'),  # лубастр^астью xword2=вл^асты  word1=любострастью word2=власти
+    (r'\^астнай', r'\^ясный'),  # word1=страстной word2=неясный
+    (r'\^очнай', r'\^ощнай'),  # word1=полуночной word2=мощной
+    (r'\^эстний', r'\^эсний'),  # word1=неуместней word2=песней
+    (r'\^озна', r'\^оздна'),  # word1=морозна word2=поздно
+    (r'\^эзны', r'\^эздны'),  # word1=бесполезны word2=бездны
+    (r'\^упна', r'\^упнай'),  # word1=преступно word2=недоступной
+    (r'\^эжнай', r'\^эжна'),  # word1=неизбежной word2=мятежно
+    (r'\^эснык', r'\^эстнык'),  # word1=кудесник word2=вестник
+    (r'\^аснай', r'\^астнай'),  # word1=прекрасной word2=сладострастной
+    (r'([:C:])\^аем', r'[:1:]\^ая'),  # word1=попугаем word2=постигая
+    (r'\^асна', r'\^аснасть'),  # word1=напрасно word2=опасность
+    (r'ы\^ы', r'и\^ы'),  # word1=сии word2=ии
+    (r'\^ома', r'\^омья'),  # word1=знаком word2=комья
+    (r'\^ояс', r'\^оясь'),  # word1=пояс word2=беспокоясь
+    (r'\^эчнай', r'\^эчна'),  # word1=сердечной word2=конечно
+    (r'\^астны', r'\^асны'),  # word1=страстны word2=согласны
+    (r'\^асных', r'\^астных'),  # word1=прекрасных word2=сладострастных
+    (r'\^эстнай', r'\^эсный'),  # word1=прелестной word2=неизвестный
+    (r'\^ойнай', r'\^ойна'),  # word1=стройной word2=спокойно
+    (r'\^ырна', r'\^ырнай'),  # word1=мирно word2=эфирной
+    (r'\^эный', r'\^енай'),  # word1=неизменный word2=военной
+    (r'\^ушна', r'\^ушнай'),  # word1=малодушно word2=ослушной
+    (r'\^однай', r'\^одна' ),  # word1=природной word2=угодно
+    (r'\^ожнай', r'\^ожна'),  # word1=неподложной word2=невозможно
+    (r'\^астный', r'\^асный'),  # word1=ненастный word2=прекрасный
+    (r'\^олны', r'\^олный'),  # word1=волны word2=полный
+    (r'\^умнай', r'\^умна'),  # word1=шумной word2=вольнодумно
+    (r'\^эчны', r'\^эчный'),  # word1=вечны word2=быстротечный
+    (r'\^асна', r'\^астнай'),  # word1=ясно word2=страстной
+    (r'\^оздна', r'\^ознай'),  # п^оздна xword2=гр^ознай  word1=поздно word2=грозной
+    (r'\^аснай', r'\^астный'),  # уж^аснай xword2=стр^астный  word1=ужасной word2=страстный
+    (r'^\^я', r'\^я'),  # word1=я word2=твоя
+    (r'\^эснай', r'\^эстнай'),  # ниб^эснай xword2=прил^эстнай  word1=небесной word2=прелестной
+    (r'\^ампа', r'\^амба'),  # м^амба xword2=тр^ампа  word1=мамба word2=трампа
+    (r'\^оят', r'\^ое'),  # word1=беспокоят word2=любое
+    (r'\^ымые', r'\^ымаю'),  # word1=хранимые word2=незримою
+    (r'\^явшых', r'\^авшэй'),  # word1=объявших word2=знавшей
     (r'\^энье', r'\^енья'),  # word1=спасенье word2=успокоенья
     (r'\^окы', r'\^огым'),  # word1=строки word2=строгим
     (r'\^а([:C:]+)ы', r'\^а[:1:]ый'),  # word1=причастны word2=страстный
@@ -2363,13 +2432,41 @@ xword_cases = {
 
 ('бездну', 1): ('б^эзну', 'б^эзну'),
 
-    ('свитч', 1): ('св^ыч', 'в^ыч'),
+('свитч', 1): ('св^ыч', 'в^ыч'),
+('сего', 2): ('сив^о', 'в^о'),
+('чьего', 2): ('чьев^о', 'в^о'),
+('ничего', 3): ('ничив^о', 'в^о'),
+('чего', 2): ('чив^о', 'в^о'),
+('кого', 2): ('кав^о', 'в^о'),
+('никого', 3): ('никав^о', 'в^о'),
+('всего', 2): ('всэв^о', 'в^о'),
+('своего', 3): ('сваев^о', 'в^о'),
+('моего', 3): ('маев^о', 'в^о'),
+('твоего', 3): ('тваев^о', 'в^о'),
+('его', 2): ('ев^о', 'в^о'),
+('него', 2): ('нив^о', 'в^о'),
 }
 
+
+
+NOUNS_FROM_ADJS = ['больного', 'былого',]
+
+
+def count_vowels(s: str) -> int:
+    return sum((c.lower() in 'уеыаоэёяию') for c in s)
+
+
+STOP_YO = ['нем', 'лес', 'небо', 'небе', 'небу', 'небом', 'неба', 'все', 'осел',
+           'совершенный', 'совершенная', 'совершенное', 'совершенные', 'совершенного', 'совершенной',
+           'совершенном', 'совершенному', 'совершенных', 'совершенною']
+
 def render_xword(accentuator, word, stress_pos, ud_tags, unstressed_prefix, unstressed_tail):
+    unstressed_prefix_transcript = transcript_unstressed(unstressed_prefix)
+    unstressed_tail_transcript = transcript_unstressed(unstressed_tail)
+
     k = (word, stress_pos)
     if k in xword_cases:
-        return xword_cases[k]
+        return (unstressed_prefix_transcript+xword_cases[k][0]+unstressed_tail_transcript, xword_cases[k][1]+unstressed_tail_transcript)
 
     m1 = re.match(r'сердц(е|а|у|ем)', k[0], flags=re.I)
     if m1 and k[1] == 1:
@@ -2380,8 +2477,20 @@ def render_xword(accentuator, word, stress_pos, ud_tags, unstressed_prefix, unst
         xword_cases[k] = ('с^эрц'+ending_phone, '^эрц'+ending_phone)
         return xword_cases[k]
 
-    unstressed_prefix_transcript = transcript_unstressed(unstressed_prefix)
-    unstressed_tail_transcript = transcript_unstressed(unstressed_tail)
+    # Если ударение в слове падает на "е", и слово допускает ёфикацию - сделаем ёфикацию перед фонемизацией.
+    # Например: далЁко (но далекО).
+    # Есть слова, для которых этот подход недопустим, например "нем-нём", "совершенный-совершённый"
+    if 'ё' not in word and word in accentuator.yo_dict and word.lower() not in STOP_YO:
+        if word in accentuator.ambiguous_accents or word in accentuator.ambiguous_accents2:
+            vowel_count = 0
+            for i, c in enumerate(word):
+                if c in 'уеыаоэёяию':
+                    vowel_count += 1
+                    if vowel_count == stress_pos and c.lower() == 'е':
+                        word_yo =  word[:i] + 'ё' + word[i+1:]
+                        if word_yo in accentuator.yo_dict[word]:
+                            word = word_yo
+                        break
 
     phonems = []
 
@@ -2390,17 +2499,21 @@ def render_xword(accentuator, word, stress_pos, ud_tags, unstressed_prefix, unst
     # 07-12-2022 ситуации с последним БЕЗУДАРНЫМ словом "я":
     # так э́то де́лать ви́д что я́
     #                    ^^^^^
-    if word == 'я' and stress_pos == 1 and unstressed_prefix in VOWELS:
-        return "^я", unstressed_prefix+'^я'
+    if word == 'я' and stress_pos == 1:
+        if True:  #unstressed_prefix in VOWELS:
+            return "^я", unstressed_prefix+'^я'
+        elif not unstressed_prefix:
+            return "^я", '^я'
 
     # Упрощенный алгоритм фонетической транскрипции - не учитываем йотирование, для гласных июяеё не помечаем
     # смягчение предшествующих согласных, etc.
 
     # 06.02.2024 коррекция цепочек согласных в конце: БОЮСССС ==> БОЮС
     word = re.sub(r'([бвгджзклмнпрстфхцчшщъьй])\1+$', r'\1', word, flags=re.I)
+    lword = word.lower()
 
     v_counter = 0
-    for i, c in enumerate(word.lower()):
+    for i, c in enumerate(lword):
         if c in VOWELS:
             v_counter += 1
             if v_counter == stress_pos:
@@ -2409,9 +2522,32 @@ def render_xword(accentuator, word, stress_pos, ud_tags, unstressed_prefix, unst
                 phonems.append('^')
 
                 ending = word[i:]
-                if ud_tags is not None and ('ADJ' in ud_tags or 'DET' in ud_tags) and ending == 'ого' and word not in ['отлого',]:
+                if ud_tags is not None and ('ADJ' in ud_tags or 'DET' in ud_tags or lword in NOUNS_FROM_ADJS) and ending == 'ого' and word not in ['отлого',]:
                     # Меняем "люб-ОГО" на "люб-ОВО"
-                    phonems.extend('ова')
+
+                    n1 = count_vowels(word[:-3])
+                    if stress_pos <= n1:
+                        # "лЮбого"
+                        # безударная -ого при фонемизации превращается в -ава
+                        phonems.extend('ава')
+                    else:
+                        # "любОго"
+                        # ударная -Ого при фонемизации превращается в -ова
+                        phonems.extend('ова')
+
+                    break
+                elif ud_tags is not None and ('VERB' in ud_tags or 'VerbForm=Part' in ud_tags) and ending == 'ого':
+                    # Меняем "прожит-ОГО" на "прожит-ОВО"
+                    # Нужно учесть ударение, чтобы корректно фонемизировать варианты "прОжитого" и "прожитОго".
+                    # Посмотрим, какой по счету является первая "о" в -ого
+                    n1 = count_vowels(word[:-3])
+                    if stress_pos <= n1:
+                        # безударная -ого при фонемизации превращается в -ава
+                        phonems.extend('ава')
+                    else:
+                        # ударная -Ого при фонемизации превращается в -ова
+                        phonems.extend('ова')
+
                     break
                 elif ending[1:] in ('ться', 'тся'):
                     if c == 'е':
