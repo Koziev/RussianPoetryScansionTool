@@ -2675,6 +2675,15 @@ class PoetryStressAligner(object):
         max_num_syllables = max(num_syllables)
         min_num_syllables = min(num_syllables)
 
+        if min_num_syllables == 3 and max_num_syllables == 5:
+            # До́ждь идё́т,
+            # Пото́ки лью́тся,
+            # Че́рный ко́т
+            # Гляди́т на блю́дце.
+            dolnik_patterns.append([[1, 0, 1],
+                                    [0, 1, 0, 1, 0]])
+
+
         if max_num_syllables == 21:
             # То воплощаюсь морскою звездой, то притворяюсь ознобом тумана.
             # Изобличаемый их простотой, пробую мудрую жизнь океана.
@@ -2761,6 +2770,12 @@ class PoetryStressAligner(object):
             # Триста уже не сто.
             dolnik_patterns.append([[1,0,0,1,0,1]])
 
+            # У́тра зи́мний пожа́р
+            # В не́м нежда́нно заже́г
+            # По́лный де́вственных ча́р
+            # Дра̀гоце́нный черто́г.
+            dolnik_patterns.append([[1,0,1,0,0,1]])
+
         if min_num_syllables == 6 and max_num_syllables == 7:
             # В городе ночь без края,
             # Что волшебства полна.
@@ -2794,6 +2809,12 @@ class PoetryStressAligner(object):
             # И скалиться, будто черт.
             dolnik_patterns.append([[0,1,0,0,1,0,0]])
 
+            # Полуме́ртвые му́хи
+            # На заби́том кио́ске,
+            # На проли́той изве́стке
+            # Сле́пы, жа́дны и глу́хи.
+            dolnik_patterns.append([[1,0,1,0,0,1,0]])
+
         if min_num_syllables == 7 and max_num_syllables == 8:
             # На белом коне ты скачешь,
             # В ноздрях его пыл огня,
@@ -2811,6 +2832,13 @@ class PoetryStressAligner(object):
                                     [0,1,0,0,1,0,1,0],
                                     [0,1,0,0,1,0,1,0]])
 
+        if min_num_syllables == 7 and max_num_syllables == 8:
+            # Ви́дно, что́-то прохло́пал,
+            # Не могу́ понять ра́зницы:
+            # Та́к у на́с уже жо́па,
+            # Или мы́ ещё в за́днице?
+            dolnik_patterns.append([[1,0,1,0,0,1,0],
+                                    [1,0,1,0,0,1,0,0]])
 
         if max_num_syllables == 8:
             dolnik_patterns.append([[1, 0, 0, 1, 1, 0, 0, 1]])
@@ -2830,6 +2858,13 @@ class PoetryStressAligner(object):
             # О великой твоей любви
             dolnik_patterns.append([[0,0,1,0,0,1,0,1,0],
                                     [0,0,1,0,0,1,0,1]])
+
+            #
+            dolnik_patterns.append([[1,0,1,0,1,0,0,1,0],
+                                    [1,0,1,0,1,0,0,1],
+                                    [1,0,1,0,1,0,0,1],
+                                    [1,0,1,0,1,0,0,1,0]])
+
 
         if min_num_syllables == 8 and max_num_syllables == 10:
             # Конца не вижу я испытанью!
@@ -2922,6 +2957,14 @@ class PoetryStressAligner(object):
             # И холст белотканный. И мой пейзаж.
             dolnik_patterns.append([[0,1,0,0,1,0,0,1, 0,1]])
 
+            #
+            dolnik_patterns.append([[1,0,0,1,0,1,0,0,1,0],
+                                    [1,0,0,1,0,0,1,0,0,1],
+                                    [1, 0, 0, 1, 0, 1, 0, 0, 1, 0],
+                                    [1, 0, 0, 1, 0, 0, 1, 0, 0, 1],
+                                    ])
+
+
         if min_num_syllables == 10 and max_num_syllables == 11:
             # Мимо бе́лого я́блока луны́,
             # Мимо кра́сного я́блока зака́та
@@ -3010,6 +3053,12 @@ class PoetryStressAligner(object):
             # Улыбнулась, лепестковая, и завился мотылёк -
             # Не улыбка ль воплощённая?... Загудело, как оса...
             dolnik_patterns.append([[1,0,1,0,1,0,1,0, 0,1,0,1,0,1,0,1]])
+
+            # В э́той тени́ полусве́тлой ве́тер не мо́жет роди́ться.
+            # Разноголо́сые пти́цы не́бо в созву́чье сложи́ли.
+            # Ла́й. Петуши́ные кри́ки. О́коло ни́вы лоси́ца.
+            # Спе́лая ро́жь колоси́тся. Зе́лень как в са́ване пы́ли.
+            dolnik_patterns.append([[1,0,0,1,0,0,1, 0,1, 0,0,1,0,0,1,0]])
 
 
         if 7 <= max_num_syllables <= 8:
@@ -5128,7 +5177,7 @@ def render_word_with_stress(word, stress_pos):
 def is_depresyashka_rhyming(alignment) -> bool:
     if alignment.rhyme_scheme in ('-A-A', 'ABAB'):
         return True
-    else:
+    elif len(alignment.poetry_lines) == 4:
         if len(alignment.poetry_lines) != 4:
             return False
 
@@ -5153,12 +5202,13 @@ def is_depresyashka_rhyming(alignment) -> bool:
         if tail2.endswith(sx2[-1].replace('\u0301', '')):
             return True
 
-        return False
+    return False
+
 
 def is_poroshok_rhyming(alignment) -> bool:
     if alignment.rhyme_scheme in ('-A-A', 'ABAB'):
         return True
-    else:
+    elif len(alignment.poetry_lines) == 4:
         # Обработаем случаи, когда в последней строке порошка безударное окончание рифмуется:
         #
         # почу́яв за́пахи мажо́ров
@@ -5174,7 +5224,7 @@ def is_poroshok_rhyming(alignment) -> bool:
         if tail2.endswith(sx2[-1].replace('\u0301', '')):
             return True
 
-        return False
+    return False
 
 
 if __name__ == '__main__':
